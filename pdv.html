@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDV Lite</title>
+<link rel="stylesheet" href="pdv.css">
+</head>
+
+<body>
+
+<!-- ====== HEADER ====== -->
+<header class="bar">
+  <div>CAIXA LIVRE</div>
+  <div>Data: <span id="dataVenda"></span></div>
+</header>
+
+<!-- ====== TABS MOBILE (oculto no desktop via CSS) ====== -->
+<div class="mobile-tabs" id="mobileTabs">
+  <button class="mobile-tab-btn active" id="tabItens" onclick="switchTab('left')">
+    🛒 Itens
+  </button>
+  <button class="mobile-tab-btn" id="tabPagamento" onclick="switchTab('right')">
+    💳 Pagamento
+  </button>
+</div>
+
+<!-- ====== MAIN LAYOUT ====== -->
+<main class="layout">
+
+  <!-- ESQUERDA: Entrada de itens -->
+  <section class="left tab-active" id="panelLeft">
+    <div class="row">
+      <div class="field">
+        <label>Qtd</label>
+        <input id="qtd" type="number" min="1" value="1">
+      </div>
+      <div class="field grow">
+        <label>Descrição (livre)</label>
+        <input id="descricaoLivre" type="text" placeholder="Observações do item (opcional)">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Código / Nome</label>
+      <input type="text" id="busca" placeholder="Bipe o código ou digite o nome" autocomplete="off">
+      <ul id="sugList" class="hidden"></ul>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Valor Unitário (R$)</label>
+        <input id="valorUnit" type="number" step="0.01" placeholder="auto do cadastro">
+      </div>
+      <button id="addBtn" type="button">➕ Adicionar</button>
+    </div>
+
+    <small id="matchInfo" class="hint">Produto: —</small>
+
+    <div class="cartWrap">
+      <table class="cart">
+        <thead>
+          <tr>
+            <th>Qtd</th>
+            <th>Descrição</th>
+            <th>Cód.</th>
+            <th>Unit</th>
+            <th>Total</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="cartBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DIREITA: Totais e pagamento -->
+  <aside class="right" id="panelRight">
+    <div class="totBox">
+
+      <!-- BARRA DE CLIENTE -->
+      <div class="cliente-bar" id="clienteBar">
+        <div class="cliente-search-wrapper" id="clienteSearchWrapper">
+          <input type="text" class="cliente-search-input" id="clienteSearchInput"
+                 placeholder="Buscar cliente..." autocomplete="off">
+          <span class="cliente-search-icon">🔍</span>
+          <div class="cliente-suggestions" id="clienteSuggestions"></div>
+        </div>
+
+        <div class="cliente-selected" id="clienteSelected">
+          <div class="cliente-selected-info">
+            <div class="cliente-selected-name">
+              <span id="clienteSelectedNomeText"></span>
+              <span class="cliente-badge" id="clienteSelectedBadge">Regular</span>
+            </div>
+            <div class="cliente-selected-details" id="clienteSelectedDetails"></div>
+          </div>
+        </div>
+
+        <button class="btn-limpar-cliente" id="btnLimparCliente">✕ Limpar</button>
+        <button class="btn-novo-cliente-rapido" id="btnNovoClienteRapido">➕ Novo</button>
+      </div>
+
+      <!-- TOTAIS -->
+      <div class="line"><span>Itens:</span><b id="qtdItens">0</b></div>
+      <div class="line big"><span>Total bruto:</span><b id="totalBruto">0,00</b></div>
+
+      <div class="field">
+        <label>Desconto (R$ ou %)</label>
+        <input id="desconto" placeholder="Ex: 5 ou 10%">
+      </div>
+
+      <div class="line xl"><span>Total:</span><b id="total">0,00</b></div>
+
+      <div class="pay">
+        <div class="field">
+          <label>Forma Pgto (1)</label>
+          <select id="fp1"></select>
+          <input id="v1" type="number" step="0.01" placeholder="Valor R$">
+        </div>
+        <div class="field">
+          <label>Forma Pgto (2)</label>
+          <select id="fp2"><option>—</option></select>
+          <input id="v2" type="number" step="0.01" placeholder="Valor R$">
+        </div>
+      </div>
+
+      <div class="line"><span>Pago:</span><b id="totalPago">0,00</b></div>
+      <div class="line"><span>Troco:</span><b id="troco">0,00</b></div>
+    </div>
+  </aside>
+</main>
+
+<!-- ====== FOOTER ====== -->
+<footer class="bottom-menu">
+  <button id="btnCaixa" type="button">
+    <span class="btn-icon">💰</span><span class="btn-label">Caixa</span>
+  </button>
+
+  <button id="btnProduto" type="button">
+    <span class="btn-icon">📦</span><span class="btn-label">Produto</span>
+  </button>
+  <button onclick="location.href='estoque.html'" type="button">
+    <span class="btn-icon">📊</span><span class="btn-label">Estoque</span>
+  </button>
+  <button onclick="location.href='servicos.html'" type="button">
+    <span class="btn-icon">🔧</span><span class="btn-label">Serviços</span>
+  </button>
+  <button onclick="location.href='dashboard.html'" type="button">
+    <span class="btn-icon">📈</span><span class="btn-label">Dashboard</span>
+  </button>
+  <button onclick="location.href='gestao.html'" type="button">
+    <span class="btn-icon">⚙️</span><span class="btn-label">Gestão</span>
+  </button>
+  <button onclick="location.href='cliente.html'" type="button">
+    <span class="btn-icon">👥</span><span class="btn-label">Clientes</span>
+  </button>
+  <button id="novaVenda" type="button">
+    <span class="btn-icon">🖨️</span><span class="btn-label">Nova Venda</span>
+  </button>
+  <button id="finalizar" type="button">
+    <span class="btn-icon">✅</span><span class="btn-label">Finalizar</span>
+  </button>
+</footer>
+
+<!-- ====== LOCK OVERLAY ====== -->
+<div id="lockOverlay">
+  <p>🚫 Nenhum caixa aberto</p>
+  <button id="overlayAbrir">Abrir Caixa</button>
+</div>
+
+<!-- ====== MODAL GLOBAL ====== -->
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-dots">
+        <div class="modal-dot red"></div>
+        <div class="modal-dot yellow"></div>
+        <div class="modal-dot green"></div>
+      </div>
+      <button id="closeModal" class="modal-close">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <h2 id="mTitle">Título</h2>
+      <div id="mBody">Mensagem...</div>
+      <div id="mActions" class="modal-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== POPUP LATERAL: CAIXA ====== -->
+<div id="popupCaixa" class="popup-lateral">
+  <button id="closeCaixa" class="close-btn">✕ Fechar</button>
+  <iframe id="frameCaixa"></iframe>
+</div>
+
+<!-- ====== POPUP LATERAL: PRODUTO ====== -->
+<div id="popupProduto" class="popup-lateral">
+  <button id="closeProduto" class="close-btn">✕ Fechar</button>
+  <iframe id="frameProduto"></iframe>
+</div>
+
+<!-- ====== MODAL CADASTRO RÁPIDO ====== -->
+<div class="modal-cadastro-rapido" id="modalCadastroRapido">
+  <div class="modal-cadastro-rapido-content">
+    <div class="modal-cadastro-rapido-header">
+      <h3>⚡ Cadastro Rápido</h3>
+      <button class="btn-fechar-modal" onclick="fecharCadastroRapido()">✕</button>
+    </div>
+    <div class="modal-cadastro-rapido-body">
+      <form id="formCadastroRapido">
+        <div class="form-group-rapido">
+          <label>Tipo</label>
+          <select id="tipoRapido" onchange="toggleTipoRapido()">
+            <option value="fisica">Pessoa Física</option>
+            <option value="juridica">Pessoa Jurídica</option>
+          </select>
+        </div>
+        <div class="form-group-rapido" id="field-nome-rapido">
+          <label>Nome Completo <span style="color:#ef4444">*</span></label>
+          <input type="text" id="nomeRapido" required>
+        </div>
+        <div class="form-group-rapido" id="field-razao-rapido" style="display:none">
+          <label>Razão Social <span style="color:#ef4444">*</span></label>
+          <input type="text" id="razaoRapido">
+        </div>
+        <div class="form-group-rapido">
+          <label>Telefone/WhatsApp <span style="color:#ef4444">*</span></label>
+          <input type="tel" id="telefoneRapido" required>
+          <div class="hint-text">(00) 00000-0000</div>
+        </div>
+        <div class="form-group-rapido" id="field-cpf-rapido">
+          <label>CPF</label>
+          <input type="text" id="cpfRapido" maxlength="14">
+        </div>
+        <div class="form-group-rapido" id="field-cnpj-rapido" style="display:none">
+          <label>CNPJ</label>
+          <input type="text" id="cnpjRapido" maxlength="18">
+        </div>
+        <div class="form-group-rapido">
+          <label>E-mail</label>
+          <input type="email" id="emailRapido">
+        </div>
+        <div class="form-group-rapido">
+          <label>Limite de Crédito (R$)</label>
+          <input type="number" id="limiteCreditoRapido" step="0.01" value="500.00">
+        </div>
+      </form>
+    </div>
+    <div class="modal-cadastro-rapido-footer">
+      <button class="btn-modal btn-modal-secondary" onclick="fecharCadastroRapido()">Cancelar</button>
+      <button class="btn-modal btn-modal-primary" onclick="salvarClienteRapido()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== FIREBASE ====== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<!-- ====== SCRIPTS (ordem importa) ====== -->
+<script src="config.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  const db = firebase.firestore();
+  console.log("%c🔥 Firebase conectado (PDV Lite)", "color:#4f7cff");
+
+  // === TABS MOBILE ===
+  function switchTab(panel) {
+    const left = document.getElementById('panelLeft');
+    const right = document.getElementById('panelRight');
+    const tabItens = document.getElementById('tabItens');
+    const tabPag = document.getElementById('tabPagamento');
+
+    if (panel === 'left') {
+      left.classList.add('tab-active');
+      right.classList.remove('tab-active');
+      tabItens.classList.add('active');
+      tabPag.classList.remove('active');
+    } else {
+      right.classList.add('tab-active');
+      left.classList.remove('tab-active');
+      tabPag.classList.add('active');
+      tabItens.classList.remove('active');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+<script src="modules/modal.js"></script>
+<script src="modules/auth.js"></script>
+<script src="modules/sync-manager.js"></script>
+<script src="modules/caixa.js"></script>
+<script src="modules/cliente.js"></script>
+<script src="modules/nav.js"></script>
+<script src="modules/pix.js"></script>
+<script src="modules/backup.js"></script>
+<script src="pdv.js"></script>
+<script>
+  // Inicializar Auth (após todos os módulos carregados)
+  AuthManager.init(db);
+</script>
+
+</body>
+</html>

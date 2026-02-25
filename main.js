@@ -1,0 +1,9 @@
+const { app, BrowserWindow } = require('electron');
+const path = require('path');
+
+function createWindow() {
+  const win = new BrowserWindow({ width: 1200, height: 800 });
+  win.loadFile('index.html'); // troque se sua página inicial tiver outro nome
+}
+
+app.whenReady().then(createWindow);

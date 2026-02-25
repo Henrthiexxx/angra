@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestão de Vendas — Fazzo PDV</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.bar{background:#4f7cff;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:15px;position:sticky;top:0;z-index:100}
+.link{color:#fff;text-decoration:none;font-size:14px;opacity:.9}.link:hover{opacity:1}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.top{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.top input,.top select{padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px}
+.top input{flex:1;min-width:200px}
+.top input:focus,.top select:focus{outline:none;border-color:#4f7cff}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc;font-weight:600;color:#475569;font-size:13px}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.badge.ok{background:#dcfce7;color:#16a34a}.badge.cancel{background:#fee2e2;color:#dc2626}.badge.devol{background:#fef3c7;color:#d97706}
+.btn{padding:8px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-warning{background:#f59e0b;color:#fff}.btn-warning:hover{background:#d97706}
+.btn-ghost{background:#e2e8f0;color:#334155}.btn-ghost:hover{background:#cbd5e1}
+.btn-primary{background:#4f7cff;color:#fff}.btn-primary:hover{background:#3b6ce7}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.empty{text-align:center;color:#94a3b8;padding:40px}
+.stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:#fff;padding:14px 20px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);text-align:center;flex:1;min-width:120px}
+.stat .n{font-size:22px;font-weight:800;color:#4f7cff}.stat .l{font-size:12px;color:#64748b}
+/* Detail */
+.detail{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-top:12px;display:none}
+.detail.show{display:block}
+.detail h4{margin-bottom:10px;font-size:15px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;margin-bottom:12px}
+.detail-grid .lbl{color:#64748b}.detail-grid .val{font-weight:600}
+.detail table{font-size:13px}
+/* Print */
+@media print{.bar,.top,.actions,.btn,.stats{display:none!important}.detail{display:block!important;border:none;box-shadow:none}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div>🔧 Gestão de Vendas</div>
+  <a href="pdv.html" class="link">← Voltar ao PDV</a>
+</header>
+
+<div class="container">
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="sTotal">0</div><div class="l">Total Vendas</div></div>
+    <div class="stat"><div class="n" id="sFat">R$ 0</div><div class="l">Faturamento</div></div>
+    <div class="stat"><div class="n" id="sCancel">0</div><div class="l">Canceladas</div></div>
+    <div class="stat"><div class="n" id="sDevol">0</div><div class="l">Devoluções</div></div>
+  </div>
+
+  <div class="top">
+    <input id="busca" placeholder="Buscar por nº, cliente, produto..." autocomplete="off">
+    <select id="filtroStatus">
+      <option value="">Todos</option>
+      <option value="ok">Ativas</option>
+      <option value="cancelada">Canceladas</option>
+      <option value="devolvida">Devolvidas</option>
+    </select>
+    <input id="filtroData" type="date">
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Pagamento</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+
+  <div class="detail" id="detalhe">
+    <h4 id="detTitulo">Detalhes da Venda</h4>
+    <div class="detail-grid" id="detGrid"></div>
+    <table>
+      <thead><tr><th>Produto</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th></tr></thead>
+      <tbody id="detItens"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const LS_VENDAS = "vendas", LS_PROD = "produtos";
+const fmt = n => "R$ " + (n || 0).toFixed(2).replace(".", ",");
+
+function getVendas() { return JSON.parse(localStorage.getItem(LS_VENDAS) || "[]"); }
+function saveVendas(v) { localStorage.setItem(LS_VENDAS, JSON.stringify(v)); }
+function getProdutos() { return JSON.parse(localStorage.getItem(LS_PROD) || "[]"); }
+function saveProdutos(p) { localStorage.setItem(LS_PROD, JSON.stringify(p)); }
+
+function render() {
+  const vendas = getVendas();
+  const q = document.getElementById("busca").value.toLowerCase().trim();
+  const fs = document.getElementById("filtroStatus").value;
+  const fd = document.getElementById("filtroData").value;
+
+  let filtered = vendas;
+  if (q) {
+    filtered = filtered.filter(v =>
+      String(v.numero || "").includes(q) ||
+      (v.clienteNome || "").toLowerCase().includes(q) ||
+      (v.itens || []).some(i => (i.nome || "").toLowerCase().includes(q))
+    );
+  }
+  if (fs === "ok") filtered = filtered.filter(v => !v.cancelada && !v.devolvida);
+  if (fs === "cancelada") filtered = filtered.filter(v => v.cancelada);
+  if (fs === "devolvida") filtered = filtered.filter(v => v.devolvida);
+  if (fd) filtered = filtered.filter(v => (v.data || "").slice(0, 10) === fd);
+
+  // Stats
+  const ativas = vendas.filter(v => !v.cancelada && !v.devolvida);
+  document.getElementById("sTotal").textContent = vendas.length;
+  document.getElementById("sFat").textContent = fmt(ativas.reduce((s, v) => s + (v.total || 0), 0));
+  document.getElementById("sCancel").textContent = vendas.filter(v => v.cancelada).length;
+  document.getElementById("sDevol").textContent = vendas.filter(v => v.devolvida).length;
+
+  const tbody = document.getElementById("tBody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhuma venda encontrada</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.slice().reverse().map((v, ri) => {
+    const idx = vendas.indexOf(v);
+    let status, badge;
+    if (v.cancelada) { status = "cancel"; badge = "CANCELADA"; }
+    else if (v.devolvida) { status = "devol"; badge = "DEVOLVIDA"; }
+    else { status = "ok"; badge = "ATIVA"; }
+
+    return `<tr>
+      <td><b>#${v.numero || idx + 1}</b></td>
+      <td>${v.data ? new Date(v.data).toLocaleString("pt-BR") : "—"}</td>
+      <td>${v.clienteNome || "Avulso"}</td>
+      <td>${(v.itens || []).length}</td>
+      <td><b>${fmt(v.total)}</b></td>
+      <td>${v.formaPagamento || "—"}</td>
+      <td><span class="badge ${status}">${badge}</span></td>
+      <td class="actions">
+        <button class="btn btn-ghost" onclick="verDetalhe(${idx})">👁️</button>
+        <button class="btn btn-primary" onclick="reimprimir(${idx})">🖨️</button>
+        ${!v.cancelada && !v.devolvida ? `
+          <button class="btn btn-warning" onclick="devolver(${idx})">↩️</button>
+          <button class="btn btn-danger" onclick="cancelar(${idx})">✕</button>
+        ` : ""}
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ===== DETALHES =====
+window.verDetalhe = (idx) => {
+  const v = getVendas()[idx];
+  if (!v) return;
+
+  document.getElementById("detTitulo").textContent = `Venda #${v.numero || idx + 1}`;
+  document.getElementById("detGrid").innerHTML = `
+    <div><span class="lbl">Data:</span> <span class="val">${v.data ? new Date(v.data).toLocaleString("pt-BR") : "—"}</span></div>
+    <div><span class="lbl">Operador:</span> <span class="val">${v.usuario || "—"}</span></div>
+    <div><span class="lbl">Cliente:</span> <span class="val">${v.clienteNome || "Avulso"}</span></div>
+    <div><span class="lbl">Doc:</span> <span class="val">${v.clienteDoc || "—"}</span></div>
+    <div><span class="lbl">Subtotal:</span> <span class="val">${fmt(v.totalBruto)}</span></div>
+    <div><span class="lbl">Desconto:</span> <span class="val">${fmt(v.desconto)}</span></div>
+    <div><span class="lbl">Total:</span> <span class="val">${fmt(v.total)}</span></div>
+    <div><span class="lbl">Pago:</span> <span class="val">${fmt(v.pago)}</span></div>
+    <div><span class="lbl">Troco:</span> <span class="val">${fmt(v.troco)}</span></div>
+    <div><span class="lbl">Forma:</span> <span class="val">${(v.pagamentos || []).map(p => `${p.forma}: ${fmt(p.valor)}`).join(", ") || v.formaPagamento || "—"}</span></div>
+  `;
+
+  document.getElementById("detItens").innerHTML = (v.itens || []).map(i =>
+    `<tr><td>${i.nome}</td><td>${i.qtd}</td><td>${fmt(i.preco)}</td><td>${fmt(i.subtotal)}</td></tr>`
+  ).join("");
+
+  const det = document.getElementById("detalhe");
+  det.classList.add("show");
+  det.scrollIntoView({ behavior: "smooth" });
+};
+
+// ===== CANCELAR =====
+window.cancelar = (idx) => {
+  const vendas = getVendas();
+  const v = vendas[idx];
+  if (!v) return;
+  const motivo = prompt(`Cancelar Venda #${v.numero}?\nMotivo:`);
+  if (motivo === null) return;
+
+  v.cancelada = true;
+  v.motivoCancelamento = motivo || "Sem motivo";
+  v.dataCancelamento = new Date().toISOString();
+
+  // Devolver estoque
+  devolverEstoque(v.itens);
+
+  saveVendas(vendas);
+  render();
+};
+
+// ===== DEVOLVER =====
+window.devolver = (idx) => {
+  const vendas = getVendas();
+  const v = vendas[idx];
+  if (!v) return;
+  if (!confirm(`Devolver Venda #${v.numero}?\nTotal: ${fmt(v.total)}`)) return;
+
+  v.devolvida = true;
+  v.dataDevolucao = new Date().toISOString();
+
+  devolverEstoque(v.itens);
+
+  saveVendas(vendas);
+  render();
+};
+
+function devolverEstoque(itens) {
+  if (!itens || itens.length === 0) return;
+  const prods = getProdutos();
+  itens.forEach(it => {
+    if (!it.codigoBarras) return;
+    const idx = prods.findIndex(p => (p.codigoBarras || "") === it.codigoBarras);
+    if (idx > -1) {
+      prods[idx].estoque = (+prods[idx].estoque || 0) + (it.qtd || 1);
+    }
+  });
+  saveProdutos(prods);
+}
+
+// ===== REIMPRIMIR =====
+window.reimprimir = (idx) => {
+  verDetalhe(idx);
+  setTimeout(() => window.print(), 300);
+};
+
+// Listeners
+document.getElementById("busca").addEventListener("input", render);
+document.getElementById("filtroStatus").addEventListener("change", render);
+document.getElementById("filtroData").addEventListener("change", render);
+
+render();
+</script>
+</body>
+</html>

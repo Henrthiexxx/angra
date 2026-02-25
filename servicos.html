@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Serviços — Fazzo PDV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0b1120;
+    --surface:  #131d30;
+    --card:     #1a2540;
+    --border:   rgba(255,255,255,.07);
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #4f7cff;
+    --green:    #10b981;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --radius:   16px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header a { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .header a:hover { color: var(--text); }
+  .header h1 { font-family: 'Syne', sans-serif; font-size: 18px; color: #fff; margin-left: 4px; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    position: sticky; top: 57px; z-index: 90;
+  }
+  .tab-btn {
+    padding: 14px 20px; background: none; border: none;
+    color: var(--muted); font-size: 14px; font-weight: 600;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all .2s; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn .badge {
+    background: var(--accent); color: #fff;
+    border-radius: 20px; padding: 1px 7px; font-size: 10px; font-weight: 700;
+  }
+
+  /* ── PANEL ── */
+  .panel { display: none; padding: 24px 20px 100px; animation: fadeIn .2s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── SHOP SECTION ── */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── HORIZONTAL SHOP SCROLL ── */
+  .shop-scroll {
+    display: flex; gap: 14px;
+    overflow-x: auto; padding-bottom: 12px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .shop-scroll::-webkit-scrollbar { display: none; }
+
+  .shop-card {
+    flex-shrink: 0; width: 220px; scroll-snap-align: start;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    cursor: pointer; transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .shop-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--accent-color, #4f7cff) 0%, transparent 60%);
+    opacity: 0; transition: opacity .2s;
+  }
+  .shop-card:hover { transform: translateY(-3px); border-color: var(--accent-color, #4f7cff); }
+  .shop-card:hover::before { opacity: .06; }
+
+  .shop-card.destaque {
+    border-color: var(--amber);
+    background: linear-gradient(145deg, #1e2a40, #1a2540);
+  }
+  .shop-card.destaque .destaque-tag {
+    display: inline-flex;
+  }
+  .destaque-tag {
+    display: none;
+    position: absolute; top: 12px; right: 12px;
+    background: var(--amber); color: #000;
+    font-size: 9px; font-weight: 800; letter-spacing: .8px;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 20px;
+  }
+
+  .shop-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+  .shop-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .shop-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; min-height: 36px; }
+  .shop-price {
+    font-size: 22px; font-weight: 800; color: #fff;
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .shop-price small { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .shop-price .free { color: var(--green); font-size: 18px; }
+
+  .btn-subscribe {
+    width: 100%; margin-top: 14px; padding: 10px;
+    background: var(--accent-color, #4f7cff);
+    border: none; border-radius: 10px;
+    color: #fff; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: opacity .15s, transform .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-subscribe:hover { opacity: .88; transform: translateY(-1px); }
+  .btn-subscribe:disabled { background: #2a3450; color: var(--muted); cursor: default; transform: none; }
+
+  /* ── SERVIÇOS ATIVOS ── */
+  .active-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .active-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    transition: border-color .2s;
+  }
+  .active-card:hover { border-color: rgba(79,124,255,.3); }
+
+  .active-icon {
+    font-size: 28px; width: 52px; height: 52px;
+    background: rgba(255,255,255,.05); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .active-info { flex: 1; min-width: 0; }
+  .active-name { font-weight: 700; font-size: 15px; color: #fff; }
+  .active-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .active-status {
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    flex-shrink: 0;
+  }
+  .active-status.ok     { background: rgba(16,185,129,.15); color: var(--green); }
+  .active-status.trial  { background: rgba(245,158,11,.15); color: var(--amber); }
+  .active-status.paused { background: rgba(100,116,139,.15); color: var(--muted); }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; display: block; opacity: .4; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── USO & LIMITES ── */
+  .limits-grid { display: flex; flex-direction: column; gap: 16px; }
+
+  .limits-service {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .limits-service-header {
+    padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .limits-service-header span { font-size: 22px; }
+  .limits-service-header h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #fff; }
+
+  .limits-rows { padding: 4px 0; }
+  .limit-row {
+    padding: 12px 20px; display: flex; flex-direction: column; gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .limit-row:last-child { border-bottom: none; }
+  .limit-row-top { display: flex; justify-content: space-between; align-items: center; }
+  .limit-label { font-size: 13px; color: var(--muted); }
+  .limit-value { font-size: 13px; font-weight: 700; color: #fff; }
+
+  .progress-bar {
+    height: 6px; background: rgba(255,255,255,.08);
+    border-radius: 6px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 6px;
+    background: var(--accent); transition: width .4s ease;
+  }
+  .progress-fill.warn  { background: var(--amber); }
+  .progress-fill.danger { background: var(--red); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px); display: none;
+    align-items: center; justify-content: center;
+    z-index: 500; padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal-box {
+    background: #131d30; border: 1px solid var(--border);
+    border-radius: 20px; width: 100%; max-width: 400px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.5);
+    overflow: hidden; animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .modal-top { padding: 24px 24px 0; }
+  .modal-icon { font-size: 40px; margin-bottom: 12px; display: block; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  .modal-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  .modal-features { padding: 20px 24px 0; }
+  .modal-features h4 { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .feature-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text); padding: 4px 0;
+  }
+  .feature-item::before { content: '✓'; color: var(--green); font-weight: 700; }
+
+  .modal-price-block {
+    padding: 20px 24px; display: flex; align-items: baseline; gap: 6px;
+  }
+  .modal-price-val { font-size: 32px; font-weight: 800; color: #fff; }
+  .modal-price-per { font-size: 14px; color: var(--muted); }
+
+  .modal-actions {
+    padding: 0 24px 24px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .btn-confirm {
+    padding: 14px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: all .2s; font-family: 'DM Sans', sans-serif; color: #fff;
+  }
+  .btn-cancel {
+    padding: 12px; border: none; border-radius: 12px;
+    background: none; font-size: 14px; font-weight: 600;
+    color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-cancel:hover { color: var(--text); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a2540; border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px; border-radius: 12px;
+    font-size: 14px; font-weight: 600;
+    opacity: 0; transition: all .3s; z-index: 999; pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.green { border-color: rgba(16,185,129,.4); color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="pdv.html">← PDV</a>
+  <h1>🔧 Serviços</h1>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('shop', this)">
+    🛒 Loja
+  </button>
+  <button class="tab-btn" onclick="switchTab('ativos', this)">
+    ✅ Meus Serviços <span class="badge" id="badgeAtivos">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('limites', this)">
+    📊 Uso & Limites
+  </button>
+</div>
+
+<!-- ── PAINEL: LOJA ── -->
+<div class="panel active" id="panelShop">
+  <div class="section-title">Disponíveis</div>
+  <div class="shop-scroll" id="shopScroll">
+    <div style="color:#475569;padding:40px 0;font-size:14px">Carregando serviços...</div>
+  </div>
+</div>
+
+<!-- ── PAINEL: ATIVOS ── -->
+<div class="panel" id="panelAtivos">
+  <div class="active-list" id="activeList">
+    <div class="empty-state">
+      <span class="empty-icon">📭</span>
+      <p>Nenhum serviço ativo ainda.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAINEL: LIMITES ── -->
+<div class="panel" id="panelLimites">
+  <div class="limits-grid" id="limitsGrid">
+    <div class="empty-state">
+      <span class="empty-icon">📊</span>
+      <p>Sem dados de uso disponíveis.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL DETALHES ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-top">
+      <span class="modal-icon" id="mIcon">🔧</span>
+      <div class="modal-title" id="mTitle">Serviço</div>
+      <div class="modal-desc" id="mDesc">Descrição</div>
+    </div>
+    <div class="modal-features" id="mFeatures"></div>
+    <div class="modal-price-block">
+      <div class="modal-price-val" id="mPrice">R$ 0</div>
+      <div class="modal-price-per" id="mPer">/mês</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-confirm" id="mBtnConfirm" onclick="confirmarAssinatura()">Assinar agora</button>
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  const db = firebase.firestore();
+
+  let currentUser = null;
+  let servicosDisponiveis = [];
+  let servicosAtivos = [];
+  let servicoSelecionado = null;
+
+  // ── AUTH ──
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+    await carregarServicos();
+    await carregarAtivos();
+  });
+
+  // ── TABS ──
+  function switchTab(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel' + id.charAt(0).toUpperCase() + id.slice(1)).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── CARREGAR SERVIÇOS ──
+  async function carregarServicos() {
+    const snap = await db.collection('servicos').where('ativo', '==', true).get();
+    servicosDisponiveis = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderShop();
+  }
+
+  async function carregarAtivos() {
+    const snap = await db.collection('usuarios').doc(currentUser.uid)
+      .collection('servicos_ativos').get();
+    servicosAtivos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    document.getElementById('badgeAtivos').textContent = servicosAtivos.length;
+    renderAtivos();
+    renderLimites();
+  }
+
+  // ── RENDER SHOP ──
+  function renderShop() {
+    const el = document.getElementById('shopScroll');
+    if (!servicosDisponiveis.length) {
+      el.innerHTML = '<div style="color:#475569;padding:40px 0;font-size:14px">Nenhum serviço disponível.</div>';
+      return;
+    }
+    el.innerHTML = servicosDisponiveis.map(s => {
+      const ativo = servicosAtivos.find(a => a.servicoId === s.id);
+      const cor = s.cor || '#4f7cff';
+      return `
+        <div class="shop-card ${s.destaque ? 'destaque' : ''}" style="--accent-color:${cor}"
+             onclick="abrirModal('${s.id}')">
+          <span class="destaque-tag">⭐ Destaque</span>
+          <span class="shop-icon">${s.icone || '🔧'}</span>
+          <div class="shop-name">${s.nome}</div>
+          <div class="shop-desc">${s.descricao || ''}</div>
+          <div class="shop-price">
+            ${s.preco > 0
+              ? `R$ <b>${s.preco.toFixed(2).replace('.',',')}</b><small>/${s.periodo || 'mês'}</small>`
+              : `<span class="free">Grátis</span>`
+            }
+          </div>
+          <button class="btn-subscribe" style="background:${cor}" ${ativo ? 'disabled' : ''}>
+            ${ativo ? '✅ Ativo' : 'Assinar'}
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  // ── RENDER ATIVOS ──
+  function renderAtivos() {
+    const el = document.getElementById('activeList');
+    if (!servicosAtivos.length) {
+      el.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><p>Nenhum serviço ativo. Explore a loja!</p></div>`;
+      return;
+    }
+    el.innerHTML = servicosAtivos.map(a => {
+      const s = servicosDisponiveis.find(x => x.id === a.servicoId) || {};
+      const status = a.status || 'ok';
+      const statusLabel = { ok: 'Ativo', trial: 'Trial', paused: 'Pausado' }[status] || 'Ativo';
+      const venc = a.vencimento ? new Date(a.vencimento).toLocaleDateString('pt-BR') : '—';
+      return `
+        <div class="active-card">
+          <div class="active-icon">${s.icone || '🔧'}</div>
+          <div class="active-info">
+            <div class="active-name">${s.nome || a.servicoId}</div>
+            <div class="active-sub">Vence em: ${venc} · ${s.preco > 0 ? 'R$ ' + (s.preco||0).toFixed(2).replace('.',',') + '/mês' : 'Grátis'}</div>
+          </div>
+          <div class="active-status ${status}">${statusLabel}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── RENDER LIMITES ──
+  function renderLimites() {
+    const el = document.getElementById('limitsGrid');
+    const comLimites = servicosAtivos.filter(a => {
+      const s = servicosDisponiveis.find(x => x.id === a.servicoId);
+      return s?.limites?.length;
+    });
+
+    if (!comLimites.length) {
+      el.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span><p>Nenhum dado de uso disponível.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = comLimites.map(a => {
+      const s = servicosDisponiveis.find(x => x.id === a.servicoId) || {};
+      const uso = a.uso || {};
+      const rows = (s.limites || []).map(l => {
+        const max = l.valor;
+        const atual = uso[l.chave] || 0;
+        const pct = max > 0 ? Math.min(100, (atual / max) * 100) : 0;
+        const cls = pct >= 90 ? 'danger' : pct >= 70 ? 'warn' : '';
+        return `
+          <div class="limit-row">
+            <div class="limit-row-top">
+              <span class="limit-label">${l.nome}</span>
+              <span class="limit-value">${max < 0 ? '∞' : atual + ' / ' + max + ' ' + (l.unidade || '')}</span>
+            </div>
+            ${max > 0 ? `<div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>` : ''}
+          </div>`;
+      }).join('');
+      return `
+        <div class="limits-service">
+          <div class="limits-service-header">
+            <span>${s.icone || '🔧'}</span>
+            <h3>${s.nome || a.servicoId}</h3>
+          </div>
+          <div class="limits-rows">${rows}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── MODAL ──
+  function abrirModal(id) {
+    const s = servicosDisponiveis.find(x => x.id === id);
+    if (!s) return;
+    servicoSelecionado = s;
+    const cor = s.cor || '#4f7cff';
+
+    document.getElementById('mIcon').textContent = s.icone || '🔧';
+    document.getElementById('mTitle').textContent = s.nome;
+    document.getElementById('mDesc').textContent = s.descricao || '';
+    document.getElementById('mPrice').textContent = s.preco > 0 ? `R$ ${s.preco.toFixed(2).replace('.',',')}` : 'Grátis';
+    document.getElementById('mPer').textContent = s.preco > 0 ? `/${s.periodo || 'mês'}` : '';
+
+    const btn = document.getElementById('mBtnConfirm');
+    btn.style.background = cor;
+
+    const ativo = servicosAtivos.find(a => a.servicoId === id);
+    btn.disabled = !!ativo;
+    btn.textContent = ativo ? '✅ Já ativo' : 'Assinar agora';
+
+    const featEl = document.getElementById('mFeatures');
+    if (s.recursos?.length) {
+      featEl.style.display = 'block';
+      featEl.innerHTML = `<h4>Incluído</h4>` + s.recursos.map(r => `<div class="feature-item">${r}</div>`).join('');
+    } else {
+      featEl.style.display = 'none';
+    }
+
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    servicoSelecionado = null;
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modalOverlay')) fecharModal();
+  });
+
+  async function confirmarAssinatura() {
+    if (!servicoSelecionado) return;
+    const s = servicoSelecionado;
+    const venc = new Date();
+    venc.setMonth(venc.getMonth() + 1);
+
+    await db.collection('usuarios').doc(currentUser.uid)
+      .collection('servicos_ativos').doc(s.id).set({
+        servicoId: s.id,
+        status: 'ok',
+        vencimento: venc.toISOString(),
+        ativadoEm: new Date().toISOString(),
+        uso: {}
+      });
+
+    fecharModal();
+    await carregarAtivos();
+    toast(`✅ ${s.nome} ativado!`, 'green');
+  }
+
+  function toast(msg, tipo = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'toast ' + tipo;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2600);
+  }
+</script>
+</body>
+</html>

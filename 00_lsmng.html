@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LocalStorage — Visualizador</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:16px;background:#0b1220;color:#e5e7eb}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    input{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;min-width:260px}
+    button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#111827;color:#e5e7eb;cursor:pointer}
+    button:hover{border-color:#60a5fa}
+    .card{background:#0f172a;border:1px solid #334155;border-radius:14px;overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 12px;border-bottom:1px solid #334155;vertical-align:top}
+    th{background:#111827;text-align:left;font-size:12px;color:#94a3b8}
+    td code{white-space:pre-wrap;word-break:break-word}
+    .muted{color:#94a3b8;font-size:12px}
+    .actions{display:flex;gap:6px;flex-wrap:wrap}
+    .danger{border-color:#ef4444}
+    .danger:hover{background:#1f0a0a}
+  </style>
+</head>
+<body>
+  <h2 style="margin:0 0 10px">LocalStorage</h2>
+
+  <div class="bar">
+    <input id="q" placeholder="Filtrar por chave ou valor..." />
+    <button id="btnRefresh">Atualizar</button>
+    <button id="btnExport">Exportar JSON</button>
+    <button id="btnClear" class="danger">Limpar tudo</button>
+    <span class="muted" id="count"></span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th style="width:220px">Chave</th><th>Valor</th><th style="width:220px">Ações</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+
+  function snapshot() {
+    const arr = [];
+    for (let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      arr.push({ key:k, value: localStorage.getItem(k) ?? "" });
+    }
+    arr.sort((a,b)=>a.key.localeCompare(b.key));
+    return arr;
+  }
+
+  function render() {
+    const term = ($("q").value || "").toLowerCase();
+    const data = snapshot().filter(x =>
+      !term || x.key.toLowerCase().includes(term) || (x.value||"").toLowerCase().includes(term)
+    );
+
+    $("count").textContent = `${data.length} / ${localStorage.length} itens`;
+    $("rows").innerHTML = data.map(({key,value}) => {
+      const safeKey = escapeHtml(key);
+      const safeVal = escapeHtml(value);
+      return `
+        <tr data-key="${encodeURIComponent(key)}">
+          <td><code>${safeKey}</code></td>
+          <td><code>${safeVal}</code></td>
+          <td>
+            <div class="actions">
+              <button onclick="copyItem('${jsStr(key)}')">Copiar</button>
+              <button onclick="editItem('${jsStr(key)}')">Editar</button>
+              <button class="danger" onclick="delItem('${jsStr(key)}')">Excluir</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  function copyItem(key){
+    const v = localStorage.getItem(key) ?? "";
+    navigator.clipboard?.writeText(v);
+  }
+
+  function editItem(key){
+    const cur = localStorage.getItem(key) ?? "";
+    const next = prompt("Novo valor para: " + key, cur);
+    if (next === null) return;
+    localStorage.setItem(key, next);
+    render();
+  }
+
+  function delItem(key){
+    if (!confirm("Excluir a chave: " + key + " ?")) return;
+    localStorage.removeItem(key);
+    render();
+  }
+
+  function exportJson(){
+    const obj = {};
+    snapshot().forEach(({key,value}) => obj[key] = value);
+    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "localStorage-backup.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function jsStr(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+  $("btnRefresh").addEventListener("click", render);
+  $("q").addEventListener("input", render);
+  $("btnExport").addEventListener("click", exportJson);
+  $("btnClear").addEventListener("click", ()=>{
+    if (!confirm("Tem certeza que quer apagar TODO o localStorage?")) return;
+    localStorage.clear(); render();
+  });
+
+  render();
+</script>
+</body>
+</html>

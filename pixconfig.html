@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configuração PIX</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: linear-gradient(135deg, #10b981, #059669);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card-header h1 {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .card-header span { font-size: 28px; }
+
+  .card-body { padding: 28px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .status-badge.ok { background: #d1fae5; color: #065f46; }
+  .status-badge.warn { background: #fef3c7; color: #92400e; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .form-group select,
+  .form-group input {
+    padding: 11px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #1e293b;
+    transition: border-color .2s;
+    width: 100%;
+    background: #fff;
+  }
+
+  .form-group select:focus,
+  .form-group input:focus {
+    outline: none;
+    border-color: #10b981;
+  }
+
+  .hint { font-size: 11px; color: #94a3b8; }
+  .required { color: #ef4444; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    padding: 0 24px 24px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .88; }
+
+  .btn-primary { background: #10b981; color: #fff; }
+  .btn-ghost { background: #f1f5f9; color: #64748b; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform .3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.green { background: #10b981; }
+  .toast.red { background: #ef4444; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <span>📱</span>
+    <h1>Configuração PIX</h1>
+  </div>
+
+  <div class="card-body">
+    <div id="statusBadge" class="status-badge warn">⚠️ PIX não configurado</div>
+
+    <div class="form-group">
+      <label>Tipo da Chave</label>
+      <select id="tipoChave">
+        <option value="cpf">CPF</option>
+        <option value="cnpj">CNPJ</option>
+        <option value="email">E-mail</option>
+        <option value="telefone">Telefone</option>
+        <option value="aleatoria">Chave Aleatória</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Chave PIX <span class="required">*</span></label>
+      <input type="text" id="chave" placeholder="Digite sua chave PIX">
+    </div>
+
+    <div class="form-group">
+      <label>Nome do Recebedor</label>
+      <input type="text" id="nome" placeholder="Como aparece no QR Code" maxlength="25">
+      <span class="hint">Máximo 25 caracteres, sem acentos</span>
+    </div>
+
+    <div class="form-group">
+      <label>Cidade</label>
+      <input type="text" id="cidade" placeholder="Ex: SAO PAULO" maxlength="15">
+      <span class="hint">Máximo 15 caracteres</span>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-ghost" onclick="history.back()">← Voltar</button>
+    <button class="btn btn-primary" onclick="salvar()">💾 Salvar configuração</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const LS_KEY = "pix_config";
+
+  function getConfig() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+  }
+
+  function toast(msg, tipo = "green") {
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.className = "toast " + tipo;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2800);
+  }
+
+  function atualizarStatus(cfg) {
+    const badge = document.getElementById("statusBadge");
+    if (cfg.chave) {
+      badge.className = "status-badge ok";
+      badge.textContent = `✅ PIX configurado — Chave: ${cfg.chave}`;
+    } else {
+      badge.className = "status-badge warn";
+      badge.textContent = "⚠️ PIX não configurado";
+    }
+  }
+
+  function carregar() {
+    const cfg = getConfig();
+    if (cfg.tipoChave) document.getElementById("tipoChave").value = cfg.tipoChave;
+    if (cfg.chave)     document.getElementById("chave").value = cfg.chave;
+    if (cfg.nome)      document.getElementById("nome").value = cfg.nome;
+    if (cfg.cidade)    document.getElementById("cidade").value = cfg.cidade;
+    atualizarStatus(cfg);
+  }
+
+  function salvar() {
+    const chave = document.getElementById("chave").value.trim();
+    if (!chave) { toast("Chave PIX é obrigatória!", "red"); return; }
+
+    const cfg = {
+      tipoChave: document.getElementById("tipoChave").value,
+      chave,
+      nome: document.getElementById("nome").value.trim() || "LOJA",
+      cidade: document.getElementById("cidade").value.trim() || "SAO PAULO",
+      dataAtualizacao: new Date().toISOString()
+    };
+
+    localStorage.setItem(LS_KEY, JSON.stringify(cfg));
+    atualizarStatus(cfg);
+    toast("✅ PIX configurado com sucesso!");
+  }
+
+  carregar();
+</script>
+</body>
+</html>

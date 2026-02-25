@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backup de Produtos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  /* grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header { margin-bottom: 32px; }
+  .badge { display: inline-block; font-family: var(--mono); font-size: 11px; color: var(--accent); background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.25); padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; letter-spacing: .08em; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+  h1 span { color: var(--accent); }
+  .subtitle { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* CARDS FONTE */
+  .sources { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  @media(max-width:560px){ .sources { grid-template-columns: 1fr; } }
+
+  .src-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .src-card:hover { border-color: var(--accent); }
+  .src-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .src-card.ls::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .src-card.fb::before { background: linear-gradient(90deg, #f97316, transparent); }
+
+  .src-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; }
+  .src-count { font-size: 36px; font-weight: 800; line-height: 1; }
+  .src-count.ls { color: var(--accent2); }
+  .src-count.fb { color: #f97316; }
+  .src-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .src-status { position: absolute; top: 14px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .src-status.ok { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .src-status.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  .src-status.err { background: var(--danger); }
+
+  /* ACTIONS */
+  .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 24px; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border);
+    font-family: var(--sans); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all .2s; background: var(--surface);
+    color: var(--text); letter-spacing: .01em;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-dl-ls  { border-color: var(--accent2); color: var(--accent2); }
+  .btn-dl-ls:hover  { background: rgba(16,185,129,.12); }
+
+  .btn-dl-fb  { border-color: #f97316; color: #f97316; }
+  .btn-dl-fb:hover  { background: rgba(249,115,22,.12); }
+
+  .btn-ul-ls  { border-color: var(--accent); color: var(--accent); }
+  .btn-ul-ls:hover  { background: rgba(59,130,246,.12); }
+
+  .btn-ul-fb  { border-color: var(--warn); color: var(--warn); }
+  .btn-ul-fb:hover  { background: rgba(245,158,11,.12); }
+
+  .btn-compare { border-color: #8b5cf6; color: #8b5cf6; }
+  .btn-compare:hover { background: rgba(139,92,246,.12); }
+
+  .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+  input[type=file] { display: none; }
+
+  /* LOG */
+  .log-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .log-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .log-title { font-family: var(--mono); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .log-clear { font-family: var(--mono); font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .log-clear:hover { background: var(--surface2); color: var(--text); }
+  .log-body { padding: 12px 16px; min-height: 120px; max-height: 280px; overflow-y: auto; font-family: var(--mono); font-size: 12px; line-height: 1.7; }
+  .log-body:empty::before { content: 'Aguardando ação...'; color: var(--muted); }
+
+  .log-line { display: flex; gap: 10px; }
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-ok   { color: var(--accent2); }
+  .log-err  { color: var(--danger); }
+  .log-warn { color: var(--warn); }
+  .log-info { color: var(--accent); }
+
+  /* TABLE PREVIEW */
+  .preview-wrap { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: none; }
+  .preview-wrap.visible { display: block; }
+  .preview-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .preview-title { font-family: var(--mono); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .preview-count { font-family: var(--mono); font-size: 11px; background: rgba(59,130,246,.15); color: var(--accent); padding: 2px 8px; border-radius: 10px; }
+  .tbl-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  th { background: var(--surface2); padding: 8px 12px; text-align: left; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 10px; position: sticky; top: 0; }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .tag-ativo { color: var(--accent2); }
+  .tag-inativo { color: var(--danger); }
+
+  /* DIFF */
+  .diff-only-ls { background: rgba(16,185,129,.06); }
+  .diff-only-fb { background: rgba(249,115,22,.06); }
+  .diff-diverge { background: rgba(245,158,11,.06); }
+
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 12px 18px; border-radius: 10px; font-family: var(--mono);
+    font-size: 13px; opacity: 0; transform: translateY(10px);
+    transition: all .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.ok { border-color: var(--accent2); color: var(--accent2); }
+  .toast.err { border-color: var(--danger); color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="badge">PDV Fazzo · Ferramentas</div>
+    <h1>Backup de <span>Produtos</span></h1>
+    <p class="subtitle">// Diagnóstico · Download · Restauração · Comparação entre fontes</p>
+  </header>
+
+  <!-- FONTES -->
+  <div class="sources">
+    <div class="src-card ls">
+      <div class="src-label">LocalStorage</div>
+      <div class="src-count ls" id="countLS">—</div>
+      <div class="src-sub" id="subLS">carregando...</div>
+      <div class="src-status" id="statusLS"></div>
+    </div>
+    <div class="src-card fb">
+      <div class="src-label">Firebase · data/keys</div>
+      <div class="src-count fb" id="countFB">—</div>
+      <div class="src-sub" id="subFB">conectando...</div>
+      <div class="src-status" id="statusFB"></div>
+    </div>
+  </div>
+
+  <!-- AÇÕES -->
+  <div class="actions">
+    <button class="btn btn-dl-ls" onclick="downloadLS()">⬇ Download LocalStorage</button>
+    <button class="btn btn-dl-fb" id="btnDlFB" onclick="downloadFB()" disabled>⬇ Download Firebase</button>
+    <button class="btn btn-ul-ls" onclick="document.getElementById('fileLS').click()">⬆ Restaurar → LocalStorage</button>
+    <button class="btn btn-ul-fb" id="btnUlFB" onclick="document.getElementById('fileFB').click()" disabled>⬆ Restaurar → Firebase</button>
+    <button class="btn btn-compare" id="btnCompare" onclick="comparar()" disabled>🔍 Comparar Fontes</button>
+  </div>
+
+  <input type="file" id="fileLS" accept=".json" onchange="uploadLS(this)">
+  <input type="file" id="fileFB" accept=".json" onchange="uploadFB(this)">
+
+  <!-- LOG -->
+  <div class="log-wrap">
+    <div class="log-header">
+      <span class="log-title">// console</span>
+      <button class="log-clear" onclick="clearLog()">limpar</button>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+  <!-- PREVIEW TABLE -->
+  <div class="preview-wrap" id="previewWrap">
+    <div class="preview-header">
+      <span class="preview-title" id="previewTitle">Produtos</span>
+      <span class="preview-count" id="previewCount">0</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Código</th>
+            <th>Preço Venda</th>
+            <th>Estoque</th>
+            <th>Status</th>
+            <th>Fonte</th>
+          </tr>
+        </thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+
+<script>
+// ── INIT ──────────────────────────────────────────
+let db = null;
+let fbProdutos = null;
+
+try {
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  db = firebase.firestore();
+  log('Firebase conectado', 'ok');
+  carregarFB();
+} catch(e) {
+  log('Erro ao conectar Firebase: ' + e.message, 'err');
+  document.getElementById('statusFB').className = 'src-status err';
+  document.getElementById('subFB').textContent = 'erro na conexão';
+}
+
+const LS_KEY = (window.APP_CONFIG?.ls?.produtos) || 'produtos';
+
+// ── LOCALSTORE ────────────────────────────────────
+function carregarLS() {
+  const raw = localStorage.getItem(LS_KEY);
+  const arr = raw ? JSON.parse(raw) : [];
+  document.getElementById('countLS').textContent = arr.length;
+  document.getElementById('subLS').textContent = raw
+    ? `chave: ${LS_KEY} · ${(raw.length/1024).toFixed(1)} KB`
+    : `chave: ${LS_KEY} · vazio`;
+  const st = document.getElementById('statusLS');
+  st.className = 'src-status ' + (arr.length > 0 ? 'ok' : 'warn');
+  return arr;
+}
+
+// ── FIREBASE ──────────────────────────────────────
+async function carregarFB() {
+  if (!db) return;
+  try {
+    const doc = await db.collection('data').doc('keys').get();
+    if (!doc.exists) {
+      log('data/keys não encontrado no Firestore', 'warn');
+      document.getElementById('statusFB').className = 'src-status warn';
+      document.getElementById('subFB').textContent = 'documento não existe';
+      document.getElementById('countFB').textContent = '0';
+      return;
+    }
+    const data = doc.data();
+    fbProdutos = Array.isArray(data.produtos) ? data.produtos : [];
+    document.getElementById('countFB').textContent = fbProdutos.length;
+    const totalSize = JSON.stringify(fbProdutos).length;
+    document.getElementById('subFB').textContent = `data/keys.produtos · ${(totalSize/1024).toFixed(1)} KB`;
+    document.getElementById('statusFB').className = 'src-status ' + (fbProdutos.length > 0 ? 'ok' : 'warn');
+    document.getElementById('btnDlFB').disabled = false;
+    document.getElementById('btnUlFB').disabled = false;
+    document.getElementById('btnCompare').disabled = false;
+    log(`Firebase: ${fbProdutos.length} produtos carregados`, 'ok');
+  } catch(e) {
+    log('Erro ao ler Firebase: ' + e.message, 'err');
+    document.getElementById('statusFB').className = 'src-status err';
+    document.getElementById('subFB').textContent = 'erro: ' + e.message;
+  }
+}
+
+// ── DOWNLOAD ──────────────────────────────────────
+function downloadLS() {
+  const arr = carregarLS();
+  if (!arr.length) return toast('LocalStorage vazio', 'err');
+  baixar(arr, `produtos-ls-${ts()}.json`);
+  log(`Download LS: ${arr.length} produtos`, 'ok');
+}
+
+async function downloadFB() {
+  if (!fbProdutos) return toast('Firebase não carregado', 'err');
+  baixar(fbProdutos, `produtos-fb-${ts()}.json`);
+  log(`Download Firebase: ${fbProdutos.length} produtos`, 'ok');
+}
+
+function baixar(obj, nome) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  toast('Download iniciado ✓', 'ok');
+}
+
+// ── UPLOAD → LS ───────────────────────────────────
+function uploadLS(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const arr = JSON.parse(e.target.result);
+      if (!Array.isArray(arr)) throw new Error('JSON não é um array');
+      localStorage.setItem(LS_KEY, JSON.stringify(arr));
+      log(`Restaurado no LocalStorage: ${arr.length} produtos`, 'ok');
+      toast(`${arr.length} produtos restaurados no LS ✓`, 'ok');
+      carregarLS();
+      mostrarTabela(arr, 'LocalStorage');
+      try { window.dispatchEvent(new CustomEvent('produtosAtualizados')); } catch{}
+    } catch(err) {
+      log('Erro ao ler JSON: ' + err.message, 'err');
+      toast('JSON inválido', 'err');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── UPLOAD → FIREBASE ─────────────────────────────
+function uploadFB(input) {
+  if (!db) return toast('Firebase não conectado', 'err');
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const arr = JSON.parse(e.target.result);
+      if (!Array.isArray(arr)) throw new Error('JSON não é um array');
+      log(`Enviando ${arr.length} produtos para Firebase...`, 'info');
+      await db.collection('data').doc('keys').set({ produtos: arr }, { merge: true });
+      fbProdutos = arr;
+      document.getElementById('countFB').textContent = arr.length;
+      log(`Firebase atualizado: ${arr.length} produtos`, 'ok');
+      toast(`${arr.length} produtos enviados para Firebase ✓`, 'ok');
+      mostrarTabela(arr, 'Firebase');
+    } catch(err) {
+      log('Erro no upload Firebase: ' + err.message, 'err');
+      toast('Erro: ' + err.message, 'err');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── COMPARAR ──────────────────────────────────────
+function comparar() {
+  const ls = carregarLS();
+  const fb = fbProdutos || [];
+
+  if (!ls.length && !fb.length) return toast('Ambas as fontes estão vazias', 'err');
+
+  const mapLS = new Map(ls.map(p => [p.codigoBarras || p.id || p.nome, p]));
+  const mapFB = new Map(fb.map(p => [p.codigoBarras || p.id || p.nome, p]));
+  const allKeys = new Set([...mapLS.keys(), ...mapFB.keys()]);
+
+  let rows = '';
+  let soLS = 0, soFB = 0, diverge = 0, igual = 0;
+
+  allKeys.forEach(key => {
+    const pLS = mapLS.get(key);
+    const pFB = mapFB.get(key);
+    let cls = '', fonte = '', diff = '';
+
+    if (pLS && !pFB) { cls = 'diff-only-ls'; fonte = '🟢 Só LS'; soLS++; }
+    else if (!pLS && pFB) { cls = 'diff-only-fb'; fonte = '🟠 Só FB'; soFB++; }
+    else {
+      const pvLS = parseFloat(pLS.precoVenda || 0).toFixed(2);
+      const pvFB = parseFloat(pFB.precoVenda || 0).toFixed(2);
+      const stLS = parseInt(pLS.estoque || 0);
+      const stFB = parseInt(pFB.estoque || 0);
+      if (pvLS !== pvFB || stLS !== stFB) {
+        cls = 'diff-diverge'; fonte = '⚠️ Divergente'; diverge++;
+        diff = `LS:R$${pvLS}/est${stLS} × FB:R$${pvFB}/est${stFB}`;
+      } else {
+        fonte = '✅ Igual'; igual++;
+      }
+    }
+
+    const p = pLS || pFB;
+    rows += `<tr class="${cls}">
+      <td>${rows.split('<tr').length}</td>
+      <td>${p.nome || '—'}</td>
+      <td>${p.codigoBarras || '—'}</td>
+      <td>${parseFloat(p.precoVenda || 0).toFixed(2)}</td>
+      <td>${p.estoque ?? '—'}</td>
+      <td class="${p.ativo === false ? 'tag-inativo' : 'tag-ativo'}">${p.ativo === false ? 'Inativo' : 'Ativo'}</td>
+      <td title="${diff}">${fonte}</td>
+    </tr>`;
+  });
+
+  document.getElementById('previewBody').innerHTML = rows;
+  document.getElementById('previewTitle').textContent = `Comparação LS × Firebase`;
+  document.getElementById('previewCount').textContent = `${allKeys.size} produtos`;
+  document.getElementById('previewWrap').classList.add('visible');
+
+  log(`Comparação: ${igual} iguais · ${diverge} divergentes · ${soLS} só LS · ${soFB} só FB`, 'info');
+  if (diverge > 0) log(`⚠️ ${diverge} produtos com preço ou estoque diferente entre as fontes`, 'warn');
+}
+
+// ── MOSTRAR TABELA ────────────────────────────────
+function mostrarTabela(arr, fonte) {
+  const rows = arr.slice(0, 200).map((p, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${p.nome || '—'}</td>
+      <td>${p.codigoBarras || '—'}</td>
+      <td>${parseFloat(p.precoVenda || 0).toFixed(2)}</td>
+      <td>${p.estoque ?? '—'}</td>
+      <td class="${p.ativo === false ? 'tag-inativo' : 'tag-ativo'}">${p.ativo === false ? 'Inativo' : 'Ativo'}</td>
+      <td>${fonte}</td>
+    </tr>`).join('');
+  document.getElementById('previewBody').innerHTML = rows + (arr.length > 200 ? `<tr><td colspan="7" style="color:var(--muted);text-align:center">... ${arr.length - 200} mais</td></tr>` : '');
+  document.getElementById('previewTitle').textContent = `Preview — ${fonte}`;
+  document.getElementById('previewCount').textContent = `${arr.length} produtos`;
+  document.getElementById('previewWrap').classList.add('visible');
+}
+
+// ── HELPERS ───────────────────────────────────────
+function ts() { return new Date().toISOString().slice(0,16).replace('T','-').replace(':','-'); }
+
+function log(msg, type = 'info') {
+  const box = document.getElementById('logBody');
+  const time = new Date().toLocaleTimeString('pt-BR');
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${msg}</span>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() { document.getElementById('logBody').innerHTML = ''; }
+
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = 'toast', 2800);
+}
+
+// ── START ─────────────────────────────────────────
+carregarLS();
+</script>
+</body>
+</html>

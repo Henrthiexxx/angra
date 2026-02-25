@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Controle de Caixa</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:#1e293b;padding:20px}
+h1{font-size:22px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:16px}
+.card h3{margin-bottom:12px;font-size:16px}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.kpi{text-align:center;padding:16px;border-radius:10px;color:#fff}
+.kpi .val{font-size:24px;font-weight:800}
+.kpi .lbl{font-size:12px;opacity:.9;margin-top:4px}
+.kpi.blue{background:linear-gradient(135deg,#4f7cff,#3b6ce7)}
+.kpi.green{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.kpi.red{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.kpi.purple{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.field input,.field select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+.field input:focus,.field select:focus{outline:none;border-color:#4f7cff;box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+.btn{padding:12px 24px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;width:100%}
+.btn-open{background:#22c55e;color:#fff}.btn-open:hover{background:#16a34a}
+.btn-close{background:#ef4444;color:#fff}.btn-close:hover{background:#dc2626}
+.btn-secondary{background:#f1f5f9;color:#334155;margin-top:8px}.btn-secondary:hover{background:#e2e8f0}
+.status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
+.status.aberto{background:#dcfce7;color:#16a34a}
+.status.fechado{background:#fee2e2;color:#dc2626}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc;font-weight:600;color:#475569;font-size:13px}
+.empty{text-align:center;color:#94a3b8;padding:24px}
+</style>
+</head>
+<body>
+
+<h1>💰 Controle de Caixa</h1>
+
+<!-- Status atual -->
+<div class="card" id="statusCard">
+  <h3>Caixa Atual</h3>
+  <div id="statusContent">Carregando...</div>
+</div>
+
+<!-- Abrir caixa -->
+<div class="card" id="abrirCard" style="display:none">
+  <h3>Abrir Novo Caixa</h3>
+  <div class="field">
+    <label>Operador</label>
+    <select id="selUsuario"></select>
+  </div>
+  <div class="field">
+    <label>Valor Inicial (R$)</label>
+    <input id="valorInicial" type="number" step="0.01" value="0" placeholder="Troco inicial">
+  </div>
+  <button class="btn btn-open" onclick="abrirCaixa()">✅ Abrir Caixa</button>
+</div>
+
+<!-- Fechar caixa -->
+<div class="card" id="fecharCard" style="display:none">
+  <h3>Fechar Caixa</h3>
+  <div class="kpi-row">
+    <div class="kpi blue"><div class="val" id="kVendas">0</div><div class="lbl">Vendas</div></div>
+    <div class="kpi green"><div class="val" id="kTotal">R$ 0</div><div class="lbl">Faturamento</div></div>
+    <div class="kpi purple"><div class="val" id="kInicial">R$ 0</div><div class="lbl">Valor Inicial</div></div>
+    <div class="kpi red"><div class="val" id="kFinal">R$ 0</div><div class="lbl">Saldo Final</div></div>
+  </div>
+  <button class="btn btn-close" onclick="fecharCaixa()">🔒 Fechar Caixa</button>
+</div>
+
+<!-- Histórico -->
+<div class="card">
+  <h3>Histórico de Caixas</h3>
+  <table>
+    <thead><tr><th>#</th><th>Operador</th><th>Abertura</th><th>Fechamento</th><th>Total</th><th>Status</th></tr></thead>
+    <tbody id="histBody"></tbody>
+  </table>
+</div>
+
+<script>
+const LS_CAIXAS = "caixas", LS_CAIXA_ATUAL = "caixa_atual", LS_USUARIOS = "usuarios", LS_VENDAS = "vendas";
+const fmt = n => "R$ " + (n || 0).toFixed(2).replace(".", ",");
+
+function loadCaixas() { return JSON.parse(localStorage.getItem(LS_CAIXAS) || "[]"); }
+function saveCaixas(a) { localStorage.setItem(LS_CAIXAS, JSON.stringify(a)); }
+function getAtual() { return JSON.parse(localStorage.getItem(LS_CAIXA_ATUAL) || "null"); }
+function setAtual(c) { localStorage.setItem(LS_CAIXA_ATUAL, JSON.stringify(c)); }
+
+function render() {
+  const atual = getAtual();
+  const caixas = loadCaixas();
+  const usuarios = JSON.parse(localStorage.getItem(LS_USUARIOS) || "[]");
+
+  // Preencher select de usuários
+  const sel = document.getElementById("selUsuario");
+  sel.innerHTML = usuarios.map(u => `<option value="${u.nome}">${u.nome}</option>`).join("");
+  if (usuarios.length === 0) sel.innerHTML = '<option value="Admin">Admin</option>';
+
+  if (atual && atual.status === "aberto") {
+    // Caixa aberto
+    document.getElementById("abrirCard").style.display = "none";
+    document.getElementById("fecharCard").style.display = "";
+
+    const vendas = JSON.parse(localStorage.getItem(LS_VENDAS) || "[]")
+      .filter(v => v.caixaId === atual.id && !v.cancelada);
+    const totalVendas = vendas.reduce((s, v) => s + (v.total || 0), 0);
+
+    document.getElementById("statusContent").innerHTML = `
+      <p>Status: <span class="status aberto">ABERTO</span></p>
+      <p>Operador: <b>${atual.usuario}</b></p>
+      <p>Aberto em: ${new Date(atual.abertura).toLocaleString("pt-BR")}</p>
+    `;
+
+    document.getElementById("kVendas").textContent = vendas.length;
+    document.getElementById("kTotal").textContent = fmt(totalVendas);
+    document.getElementById("kInicial").textContent = fmt(atual.valorInicial || 0);
+    document.getElementById("kFinal").textContent = fmt((atual.valorInicial || 0) + totalVendas);
+  } else {
+    // Sem caixa
+    document.getElementById("abrirCard").style.display = "";
+    document.getElementById("fecharCard").style.display = "none";
+    document.getElementById("statusContent").innerHTML = '<p>Status: <span class="status fechado">FECHADO</span></p><p>Nenhum caixa aberto.</p>';
+  }
+
+  // Histórico
+  const body = document.getElementById("histBody");
+  body.innerHTML = "";
+  if (caixas.length === 0) {
+    body.innerHTML = '<tr><td colspan="6" class="empty">Nenhum caixa registrado</td></tr>';
+    return;
+  }
+  caixas.slice().reverse().forEach((c, i) => {
+    body.innerHTML += `<tr>
+      <td>${caixas.length - i}</td>
+      <td>${c.usuario || "—"}</td>
+      <td>${c.abertura ? new Date(c.abertura).toLocaleString("pt-BR") : "—"}</td>
+      <td>${c.fechamento ? new Date(c.fechamento).toLocaleString("pt-BR") : "—"}</td>
+      <td>${fmt(c.totalVendas || 0)}</td>
+      <td><span class="status ${c.status}">${c.status === "aberto" ? "ABERTO" : "FECHADO"}</span></td>
+    </tr>`;
+  });
+}
+
+function abrirCaixa() {
+  const usuario = document.getElementById("selUsuario").value || "Admin";
+  const valorInicial = parseFloat(document.getElementById("valorInicial").value) || 0;
+
+  const novoCaixa = {
+    id: `CX-${Date.now()}`,
+    usuario,
+    valorInicial,
+    totalVendas: 0,
+    vendas: [],
+    status: "aberto",
+    abertura: new Date().toISOString(),
+    fechamento: null
+  };
+
+  const caixas = loadCaixas();
+  caixas.push(novoCaixa);
+  saveCaixas(caixas);
+  setAtual(novoCaixa);
+
+  // Notifica PDV pai
+  if (window.parent !== window) {
+    window.parent.postMessage("caixa-aberto", "*");
+  }
+
+  render();
+}
+
+function fecharCaixa() {
+  if (!confirm("Deseja fechar o caixa?")) return;
+
+  const atual = getAtual();
+  if (!atual) return;
+
+  const caixas = loadCaixas();
+  const idx = caixas.findIndex(c => c.id === atual.id);
+  if (idx > -1) {
+    const vendas = JSON.parse(localStorage.getItem(LS_VENDAS) || "[]")
+      .filter(v => v.caixaId === atual.id && !v.cancelada);
+
+    caixas[idx].totalVendas = vendas.reduce((s, v) => s + (v.total || 0), 0);
+    caixas[idx].status = "fechado";
+    caixas[idx].fechamento = new Date().toISOString();
+    saveCaixas(caixas);
+  }
+
+  localStorage.removeItem(LS_CAIXA_ATUAL);
+
+  if (window.parent !== window) {
+    window.parent.postMessage("caixa-atualizado", "*");
+  }
+
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

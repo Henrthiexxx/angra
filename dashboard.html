@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Fazzo PDV</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<header class="bar">
+  <div>📊 Dashboard</div>
+  <div><a href="pdv.html" class="link-home">← Voltar ao PDV</a></div>
+</header>
+
+<main class="dash-layout">
+
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="resumo">Resumo</button>
+    <button class="tab" data-tab="ranking">Rankings</button>
+    <button class="tab" data-tab="estoque">Estoque</button>
+    <button class="tab" data-tab="usuarios">Usuários</button>
+  </nav>
+
+  <!-- TAB: RESUMO -->
+  <section class="tab-content active" id="tab-resumo">
+    <div class="kpi-grid">
+      <div class="kpi blue"><div class="kpi-val" id="kVendasHoje">0</div><div class="kpi-lbl">Vendas Hoje</div></div>
+      <div class="kpi green"><div class="kpi-val" id="kFatHoje">R$ 0</div><div class="kpi-lbl">Faturamento Hoje</div></div>
+      <div class="kpi purple"><div class="kpi-val" id="kTicket">R$ 0</div><div class="kpi-lbl">Ticket Médio</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="kClientes">0</div><div class="kpi-lbl">Clientes</div></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi teal"><div class="kpi-val" id="kVendasMes">0</div><div class="kpi-lbl">Vendas Mês</div></div>
+      <div class="kpi indigo"><div class="kpi-val" id="kFatMes">R$ 0</div><div class="kpi-lbl">Faturamento Mês</div></div>
+      <div class="kpi rose"><div class="kpi-val" id="kLucroMes">R$ 0</div><div class="kpi-lbl">Lucro Est. Mês</div></div>
+      <div class="kpi slate"><div class="kpi-val" id="kMargemMes">0%</div><div class="kpi-lbl">Margem Mês</div></div>
+    </div>
+
+    <div class="card">
+      <h3>📈 Faturamento — Últimos 7 dias</h3>
+      <canvas id="chartFat7d" height="200"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>💳 Formas de Pagamento — Mês</h3>
+      <canvas id="chartFP" height="200"></canvas>
+    </div>
+  </section>
+
+  <!-- TAB: RANKINGS -->
+  <section class="tab-content" id="tab-ranking">
+    <div class="card">
+      <h3>🏆 Top Produtos (Mês)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Produto</th><th>Qtd</th><th>Faturamento</th></tr></thead>
+        <tbody id="topProdutos"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>👑 Top Clientes (Mês)</h3>
+      <table>
+        <thead><tr><th>#</th><th>Cliente</th><th>Compras</th><th>Total Gasto</th></tr></thead>
+        <tbody id="topClientes"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB: ESTOQUE -->
+  <section class="tab-content" id="tab-estoque">
+    <div class="card">
+      <h3>⚠️ Estoque Baixo / Crítico</h3>
+      <table>
+        <thead><tr><th>Produto</th><th>Atual</th><th>Mínimo</th><th>Status</th></tr></thead>
+        <tbody id="estoqueBaixo"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>📊 Projeção de Estoque (próx. 30 dias)</h3>
+      <table>
+        <thead><tr><th>Produto</th><th>Estoque</th><th>Venda/dia</th><th>Dias Restantes</th></tr></thead>
+        <tbody id="projecaoEstoque"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB: USUÁRIOS -->
+  <section class="tab-content" id="tab-usuarios">
+    <div class="card">
+      <h3>👥 Usuários / Operadores</h3>
+      <div class="top-row">
+        <button class="btn btn-primary" onclick="addUsuario()">➕ Novo Usuário</button>
+      </div>
+      <table>
+        <thead><tr><th>Nome</th><th>Tipo</th><th>Criado</th><th>Ações</th></tr></thead>
+        <tbody id="userList"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  const db = firebase.firestore();
+</script>
+<script src="modules/sync-manager.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

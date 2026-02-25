@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aguardando Aprovação — Fazzo PDV</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0b1120; color: #e2e8f0;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: #131d30; border: 1px solid rgba(79,124,255,.25);
+    border-radius: 20px; max-width: 440px; width: 100%;
+    box-shadow: 0 0 60px rgba(79,124,255,.07); overflow: hidden; text-align: center;
+  }
+  .top {
+    background: linear-gradient(135deg, #1e2d50, #1a2540);
+    padding: 36px 32px 28px; border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .pulse {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(79,124,255,.15); border: 2px solid rgba(79,124,255,.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; margin: 0 auto 20px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(79,124,255,.4); }
+    50%       { box-shadow: 0 0 0 12px rgba(79,124,255,0); }
+  }
+  h1 { font-size: 22px; font-weight: 800; color: #fff; }
+  .sub { font-size: 14px; color: #64748b; margin-top: 6px; }
+  .body { padding: 28px 32px; }
+  .info-box {
+    background: rgba(79,124,255,.07); border: 1px solid rgba(79,124,255,.18);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 22px; text-align: left;
+  }
+  .info-box p { font-size: 14px; color: #94a3b8; line-height: 1.7; }
+  .info-box strong { color: #e2e8f0; }
+  .user-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px; margin-bottom: 20px;
+  }
+  .user-row img { width: 38px; height: 38px; border-radius: 50%; }
+  .user-row .avatar { width: 38px; height: 38px; border-radius: 50%; background: #1e2a40; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #4f7cff; }
+  .user-name  { font-size: 14px; font-weight: 700; color: #fff; text-align: left; }
+  .user-email { font-size: 12px; color: #64748b; text-align: left; }
+  .btn-reload {
+    display: block; width: 100%; padding: 13px;
+    background: #4f7cff; border: none; border-radius: 12px;
+    color: #fff; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity .15s; margin-bottom: 10px;
+    font-family: inherit;
+  }
+  .btn-reload:hover { opacity: .88; }
+  .btn-sair {
+    display: block; width: 100%; padding: 12px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; color: #64748b; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .btn-sair:hover { background: rgba(255,255,255,.1); color: #e2e8f0; }
+  .checking { font-size: 12px; color: #334155; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div class="pulse">⏳</div>
+    <h1>Aguardando aprovação</h1>
+    <p class="sub">Seu acesso está em análise</p>
+  </div>
+  <div class="body">
+    <div class="user-row" id="userRow">
+      <div class="avatar">?</div>
+      <div><div class="user-name">—</div><div class="user-email">—</div></div>
+    </div>
+    <div class="info-box">
+      <p>Sua conta foi criada com sucesso, mas o acesso ao sistema requer <strong>aprovação manual de um administrador</strong>.</p>
+      <p style="margin-top:8px">Quando aprovado, basta clicar em <strong>"Verificar agora"</strong> ou fazer login novamente.</p>
+    </div>
+    <button class="btn-reload" onclick="verificar()">🔄 Verificar agora</button>
+    <button class="btn-sair" onclick="sair()">Sair da conta</button>
+    <div class="checking" id="checking"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  const db = firebase.firestore();
+  let currentUser = null;
+
+  firebase.auth().onAuthStateChanged(user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+
+    // Preencher dados do usuário na tela
+    const row = document.getElementById('userRow');
+    row.innerHTML = `
+      ${user.photoURL
+        ? `<img src="${user.photoURL}">`
+        : `<div class="avatar">${(user.displayName||'?')[0]}</div>`}
+      <div>
+        <div class="user-name">${user.displayName || '—'}</div>
+        <div class="user-email">${user.email}</div>
+      </div>`;
+  });
+
+  async function verificar() {
+    if (!currentUser) return;
+    document.getElementById('checking').textContent = 'Verificando...';
+    const doc = await db.collection('usuarios').doc(currentUser.uid).get();
+    if (!doc.exists) {
+      document.getElementById('checking').textContent = 'Conta não encontrada.';
+      return;
+    }
+    const data = doc.data();
+    if (data.status === 'aprovado' && !data.bloqueado) {
+      window.location.href = 'pdv.html';
+    } else {
+      document.getElementById('checking').textContent = '⏳ Ainda não aprovado. Tente novamente em breve.';
+    }
+  }
+
+  function sair() {
+    firebase.auth().signOut().then(() => window.location.href = 'login.html');
+  }
+
+  // Auto-verificar a cada 30s
+  setInterval(verificar, 30000);
+</script>
+</body>
+</html>

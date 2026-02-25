@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>👥 Cadastro de Clientes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:#1a1a1a;min-height:100vh}
+
+/* Header */
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:20px 28px;box-shadow:0 4px 12px rgba(102,126,234,.3);position:sticky;top:0;z-index:100}
+.header-content{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+.header h1{font-size:26px;display:flex;align-items:center;gap:10px}
+.header-actions{display:flex;gap:10px}
+.btn{padding:10px 18px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn-white{background:#fff;color:#667eea}
+.btn-primary{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.btn-danger{background:#ef4444;color:#fff;padding:8px 14px;font-size:12px}
+
+/* Layout */
+.container{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+
+/* Sidebar */
+.sidebar{background:#fff;border-radius:14px;padding:18px;box-shadow:0 4px 12px rgba(0,0,0,.06);height:fit-content;position:sticky;top:96px}
+.search-box{position:relative;margin-bottom:14px}
+.search-box input{width:100%;padding:10px 36px 10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;transition:all .2s}
+.search-box input:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
+.search-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;color:#94a3b8}
+.filter-row{display:flex;gap:8px;margin-bottom:14px}
+.filter-row select{flex:1;padding:8px;border:2px solid #e2e8f0;border-radius:8px;font-size:13px}
+.filter-row select:focus{outline:none;border-color:#667eea}
+.clientes-list{max-height:520px;overflow-y:auto}
+.cliente-item{padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .2s;border:2px solid transparent}
+.cliente-item:hover{background:#f8fafc;border-color:#667eea}
+.cliente-item.active{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#667eea}
+.cliente-nome{font-weight:600;font-size:13px;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+.cliente-info{font-size:11px;color:#64748b}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge-vip{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}
+.badge-premium{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3}
+.badge-regular{background:#f1f5f9;color:#475569}
+.badge-novo{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46}
+.list-count{font-size:12px;color:#64748b;margin-bottom:10px;font-weight:600}
+
+/* Main */
+.main-content{background:#fff;border-radius:14px;padding:28px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.tabs{display:flex;gap:4px;border-bottom:2px solid #e2e8f0;margin-bottom:24px}
+.tab{padding:10px 20px;border:none;background:transparent;color:#64748b;font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s}
+.tab:hover{color:#667eea}
+.tab.active{color:#667eea;border-bottom-color:#667eea}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-bottom:20px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-weight:600;font-size:13px;color:#475569}
+label .req{color:#ef4444}
+input,select,textarea{padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;transition:all .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
+.hint{font-size:12px;color:#64748b}
+input.error{border-color:#ef4444}
+.field-error{font-size:11px;color:#ef4444;font-weight:600;display:none}
+.field-error.show{display:block}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:linear-gradient(135deg,#f8fafc,#fff);padding:16px;border-radius:12px;border-left:4px solid #667eea;transition:all .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.stat-card.green{border-left-color:#10b981}.stat-card.red{border-left-color:#ef4444}.stat-card.amber{border-left-color:#f59e0b}.stat-card.purple{border-left-color:#8b5cf6}
+.stat-label{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.stat-value{font-size:24px;font-weight:800;color:#1a1a1a}
+.stat-sub{font-size:12px;color:#64748b;margin-top:2px}
+
+/* Historico */
+.hist-list{max-height:360px;overflow-y:auto}
+.hist-item{padding:12px;border-left:3px solid #e2e8f0;margin-bottom:8px;background:#f8fafc;border-radius:8px;transition:all .2s}
+.hist-item:hover{border-left-color:#667eea;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.hist-header{display:flex;justify-content:space-between;margin-bottom:4px}
+.hist-data{font-size:12px;color:#64748b}.hist-valor{font-weight:700;color:#10b981}
+.hist-det{font-size:13px;color:#475569}
+
+/* Tendências */
+.tend-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border-radius:8px;border-left:3px solid #667eea;margin-bottom:8px}
+.tend-label{font-weight:600;font-size:13px}.tend-valor{font-weight:700;color:#667eea;font-size:14px}
+
+/* Insights */
+.insight-box{background:#f8fafc;padding:20px;border-radius:12px;margin-top:16px}
+.insight-item{margin-bottom:10px;font-size:14px;line-height:1.6}
+
+/* Actions bar */
+.actions-bar{display:flex;gap:10px;margin-top:24px;padding-top:24px;border-top:2px solid #e2e8f0}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:14px 22px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:999;opacity:0;transform:translateX(100%);transition:all .3s;font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,#10b981,#059669)}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.error{background:linear-gradient(135deg,#ef4444,#dc2626)}
+
+.empty{text-align:center;padding:40px 20px;color:#94a3b8}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+
+/* Responsive */
+@media(max-width:1024px){.container{grid-template-columns:1fr}.sidebar{position:static}}
+@media(max-width:600px){.header h1{font-size:22px}.form-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}.stat-value{font-size:20px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-content">
+    <h1>👥 Cadastro de Clientes</h1>
+    <div class="header-actions">
+      <button class="btn btn-white" onclick="novoCliente()">➕ Novo Cliente</button>
+      <a href="pdv.html" class="btn btn-white" style="text-decoration:none">← PDV</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="search-box">
+      <input type="text" id="busca" placeholder="Buscar cliente..." autocomplete="off">
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="filter-row">
+      <select id="filtroClass"><option value="">Todos</option><option value="vip">VIP</option><option value="premium">Premium</option><option value="regular">Regular</option><option value="novo">Novo</option></select>
+      <select id="filtroOrdem"><option value="nome">Nome A-Z</option><option value="recente">Recente</option><option value="ticket">Ticket</option><option value="compras">Compras</option></select>
+    </div>
+    <div class="list-count" id="listCount">0 clientes</div>
+    <div class="clientes-list" id="clientesList"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-content">
+    <div class="tabs" id="tabsBar">
+      <button class="tab active" data-tab="cadastro">📝 Cadastro</button>
+      <button class="tab" data-tab="financeiro">💰 Financeiro</button>
+      <button class="tab" data-tab="historico">📊 Histórico</button>
+      <button class="tab" data-tab="stats">📈 Análise</button>
+    </div>
+
+    <!-- TAB: CADASTRO -->
+    <div class="tab-content active" id="tab-cadastro">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tipo <span class="req">*</span></label>
+          <select id="tipoPessoa" onchange="toggleTipo()">
+            <option value="fisica">Pessoa Física</option>
+            <option value="juridica">Pessoa Jurídica</option>
+          </select>
+        </div>
+        <div class="form-group" id="grpNome">
+          <label>Nome Completo <span class="req">*</span></label>
+          <input type="text" id="nome" autocomplete="off">
+          <div class="field-error" id="errNome"></div>
+        </div>
+        <div class="form-group" id="grpRazao" style="display:none">
+          <label>Razão Social <span class="req">*</span></label>
+          <input type="text" id="razaoSocial">
+        </div>
+        <div class="form-group" id="grpFantasia" style="display:none">
+          <label>Nome Fantasia</label>
+          <input type="text" id="nomeFantasia">
+        </div>
+        <div class="form-group" id="grpCpf">
+          <label>CPF</label>
+          <input type="text" id="cpf" maxlength="14">
+        </div>
+        <div class="form-group" id="grpCnpj" style="display:none">
+          <label>CNPJ</label>
+          <input type="text" id="cnpj" maxlength="18">
+        </div>
+        <div class="form-group">
+          <label>Telefone <span class="req">*</span></label>
+          <input type="tel" id="telefone" maxlength="15">
+          <div class="field-error" id="errTel"></div>
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="email">
+        </div>
+        <div class="form-group">
+          <label>Data Nascimento</label>
+          <input type="date" id="dataNasc">
+        </div>
+        <div class="form-group">
+          <label>CEP</label>
+          <input type="text" id="cep" maxlength="9">
+        </div>
+        <div class="form-group full">
+          <label>Endereço</label>
+          <input type="text" id="endereco" placeholder="Rua, número, bairro">
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input type="text" id="cidade">
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="estado">
+            <option value="">Selecione...</option>
+            <option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option><option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option><option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option><option value="MA">MA</option><option value="MT" selected>MT</option><option value="MS">MS</option><option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option><option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option><option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option><option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option><option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Observações</label>
+          <textarea id="obs" rows="2" placeholder="Informações adicionais..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: FINANCEIRO -->
+    <div class="tab-content" id="tab-financeiro">
+      <div class="stats-grid">
+        <div class="stat-card green"><div class="stat-label">💰 Crédito Disponível</div><div class="stat-value" id="sCredito">R$ 0</div></div>
+        <div class="stat-card red"><div class="stat-label">⚠️ Débito Atual</div><div class="stat-value" id="sDebito">R$ 0</div></div>
+        <div class="stat-card"><div class="stat-label">📊 Limite Total</div><div class="stat-value" id="sLimite">R$ 0</div></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Limite de Crédito (R$)</label>
+          <input type="number" id="limiteCredito" step="0.01" value="500">
+        </div>
+        <div class="form-group">
+          <label>Débito Atual (R$)</label>
+          <input type="number" id="debito" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>Forma Pagamento Preferida</label>
+          <select id="formaPag">
+            <option value="dinheiro">💵 Dinheiro</option><option value="pix">📱 Pix</option>
+            <option value="credito">💳 Crédito</option><option value="debito_cartao">💳 Débito</option>
+            <option value="boleto">📄 Boleto</option><option value="carne">📋 Carnê</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Dia Vencimento</label>
+          <select id="diaVenc"><option value="">Livre</option><option>5</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option></select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="status">
+            <option value="ativo">✅ Ativo</option><option value="bloqueado">🔒 Bloqueado</option>
+            <option value="inadimplente">⚠️ Inadimplente</option><option value="inativo">❌ Inativo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: HISTÓRICO -->
+    <div class="tab-content" id="tab-historico">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">🛒 Total Compras</div><div class="stat-value" id="sTotalCompras">0</div></div>
+        <div class="stat-card green"><div class="stat-label">💵 Valor Total</div><div class="stat-value" id="sValorTotal">R$ 0</div></div>
+        <div class="stat-card amber"><div class="stat-label">🎯 Ticket Médio</div><div class="stat-value" id="sTicket">R$ 0</div></div>
+        <div class="stat-card purple"><div class="stat-label">📅 Última Compra</div><div class="stat-value" style="font-size:16px" id="sUltima">Nunca</div></div>
+      </div>
+      <div class="hist-list" id="histList">
+        <div class="empty"><div class="empty-icon">📦</div><p>Nenhuma compra registrada</p></div>
+      </div>
+    </div>
+
+    <!-- TAB: ANÁLISE -->
+    <div class="tab-content" id="tab-stats">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">📊 Frequência</div><div class="stat-value" id="sFreq">0x</div><div class="stat-sub">compras/mês</div></div>
+        <div class="stat-card amber"><div class="stat-label">📅 Dia Favorito</div><div class="stat-value" style="font-size:18px" id="sDia">—</div></div>
+        <div class="stat-card green"><div class="stat-label">⏰ Horário</div><div class="stat-value" style="font-size:18px" id="sHora">—</div></div>
+        <div class="stat-card purple"><div class="stat-label">🏆 Classificação</div><div class="stat-value" style="font-size:18px" id="sClass">Novo</div></div>
+      </div>
+      <h3 style="margin:20px 0 12px;font-size:16px">📈 Produtos Mais Comprados</h3>
+      <div id="prodsFav"><div class="empty"><div class="empty-icon">📊</div><p>Dados insuficientes</p></div></div>
+      <h3 style="margin:20px 0 12px;font-size:16px">💡 Insights</h3>
+      <div class="insight-box" id="insights"><p style="color:#94a3b8;text-align:center">Insights após algumas compras</p></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" onclick="salvarCliente()">💾 Salvar Cliente</button>
+      <button class="btn" style="background:#f1f5f9;color:#475569" onclick="limparForm()">🔄 Limpar</button>
+      <button class="btn btn-danger" id="btnExcluir" style="display:none" onclick="excluirCliente()">🗑️ Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════╗
+// ║  CLIENTES — Standalone, stats auto-calculadas   ║
+// ╚══════════════════════════════════════════════════╝
+
+const LS = "fazzo_clientes";
+const LS_VENDAS = "vendas";
+const $ = s => document.querySelector(s);
+const fmt = n => "R$ " + (n || 0).toFixed(2).replace(".", ",");
+
+let clientes = [];
+let editingId = null;
+
+// ===== PERSISTENCE =====
+function load() {
+  try { clientes = JSON.parse(localStorage.getItem(LS) || "[]"); } catch { clientes = []; }
+  let fix = false;
+  clientes.forEach(c => { if (!c.id) { c.id = genId(); fix = true; } });
+  if (fix) save();
+}
+function save() { localStorage.setItem(LS, JSON.stringify(clientes)); }
+function genId() { return "CLI-" + Date.now() + "-" + Math.random().toString(36).substr(2, 6); }
+
+// ===== TABS =====
+document.getElementById("tabsBar").addEventListener("click", e => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  tab.classList.add("active");
+  document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+});
+
+// ===== TIPO PESSOA =====
+window.toggleTipo = function() {
+  const pf = document.getElementById("tipoPessoa").value === "fisica";
+  ["grpNome", "grpCpf"].forEach(id => document.getElementById(id).style.display = pf ? "" : "none");
+  ["grpRazao", "grpFantasia", "grpCnpj"].forEach(id => document.getElementById(id).style.display = pf ? "none" : "");
+};
+
+// ===== MÁSCARAS =====
+function mask(el, fn) { el?.addEventListener("input", e => { e.target.value = fn(e.target.value); }); }
+mask($("#telefone"), v => {
+  v = v.replace(/\D/g, "");
+  if (v.length <= 10) return v.replace(/^(\d{2})(\d{4})(\d)/, "($1) $2-$3");
+  return v.replace(/^(\d{2})(\d{5})(\d)/, "($1) $2-$3");
+});
+mask($("#cpf"), v => {
+  v = v.replace(/\D/g, "");
+  return v.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+});
+mask($("#cnpj"), v => {
+  v = v.replace(/\D/g, "");
+  return v.replace(/^(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+});
+mask($("#cep"), v => { v = v.replace(/\D/g, ""); return v.replace(/(\d{5})(\d)/, "$1-$2"); });
+
+// ===== FINANCEIRO AUTO-CALC =====
+["limiteCredito", "debito"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", updateFinanceiroCards);
+});
+
+function updateFinanceiroCards() {
+  const limite = parseFloat($("#limiteCredito").value) || 0;
+  const deb = parseFloat($("#debito").value) || 0;
+  $("#sCredito").textContent = fmt(limite - deb);
+  $("#sDebito").textContent = fmt(deb);
+  $("#sLimite").textContent = fmt(limite);
+}
+
+// ===== VALIDAÇÃO =====
+function validate() {
+  let ok = true;
+  const tipo = $("#tipoPessoa").value;
+  const nome = tipo === "fisica" ? $("#nome").value.trim() : $("#razaoSocial").value.trim();
+  const tel = $("#telefone").value.trim();
+
+  clearErr();
+  if (!nome) { showErr("nome", "Nome é obrigatório"); ok = false; }
+  if (!tel) { showErr("tel", "Telefone é obrigatório"); ok = false; }
+
+  // Duplicata de telefone
+  if (tel) {
+    const telDigits = tel.replace(/\D/g, "");
+    const dup = clientes.find(c => (c.telefone || "").replace(/\D/g, "") === telDigits && c.id !== editingId);
+    if (dup) { showErr("tel", `Telefone já cadastrado para "${dup.nome || dup.razaoSocial}"`); ok = false; }
+  }
+  return ok;
+}
+function showErr(f, msg) {
+  const el = f === "nome" ? $("#errNome") : $("#errTel");
+  const inp = f === "nome" ? ($("#tipoPessoa").value === "fisica" ? $("#nome") : $("#razaoSocial")) : $("#telefone");
+  el.textContent = msg; el.classList.add("show"); inp.classList.add("error");
+}
+function clearErr() {
+  ["errNome", "errTel"].forEach(id => { $(("#" + id)).classList.remove("show"); });
+  ["nome", "razaoSocial", "telefone"].forEach(id => { document.getElementById(id)?.classList.remove("error"); });
+}
+
+// ===== AUTO-CLASSIFICAÇÃO =====
+function calcClassificacao(c) {
+  const compras = c.totalCompras || 0;
+  const valor = c.valorTotalGasto || 0;
+  if (compras >= 20 && valor >= 5000) return "vip";
+  if (compras >= 10 || valor >= 2000) return "premium";
+  if (compras >= 3) return "regular";
+  return "novo";
+}
+
+// ===== CALCULAR STATS DO HISTÓRICO DE VENDAS =====
+function calcStatsFromVendas(clienteId) {
+  const vendas = JSON.parse(localStorage.getItem(LS_VENDAS) || "[]")
+    .filter(v => !v.cancelada && (v.clienteId === clienteId || v.clienteNome));
+
+  // Filtrar vendas deste cliente (por ID ou nome)
+  const cliente = clientes.find(c => c.id === clienteId);
+  if (!cliente) return {};
+
+  const nomeCliente = (cliente.nome || cliente.razaoSocial || "").toLowerCase();
+  const vendasCliente = vendas.filter(v =>
+    v.clienteId === clienteId ||
+    (v.clienteNome && v.clienteNome.toLowerCase() === nomeCliente)
+  );
+
+  if (vendasCliente.length === 0) return { totalCompras: 0, valorTotalGasto: 0, ticketMedio: 0 };
+
+  const totalCompras = vendasCliente.length;
+  const valorTotalGasto = vendasCliente.reduce((s, v) => s + (v.total || 0), 0);
+  const ticketMedio = valorTotalGasto / totalCompras;
+  const ultimaCompra = vendasCliente.sort((a, b) => new Date(b.data) - new Date(a.data))[0]?.data || null;
+
+  // Produtos favoritos
+  const prodsFav = {};
+  vendasCliente.forEach(v => {
+    (v.itens || []).forEach(it => {
+      prodsFav[it.nome] = (prodsFav[it.nome] || 0) + (it.qtd || 1);
+    });
+  });
+
+  // Frequência mensal
+  let freqMensal = 0;
+  if (vendasCliente.length > 1) {
+    const primeira = new Date(vendasCliente[vendasCliente.length - 1].data);
+    const ultima = new Date(vendasCliente[0].data);
+    const meses = Math.max(1, (ultima - primeira) / (1000 * 60 * 60 * 24 * 30));
+    freqMensal = +(totalCompras / meses).toFixed(1);
+  }
+
+  // Dia favorito
+  const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const contDias = {};
+  vendasCliente.forEach(v => { const d = dias[new Date(v.data).getDay()]; contDias[d] = (contDias[d] || 0) + 1; });
+  const diaFav = Object.entries(contDias).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+
+  // Horário favorito
+  const periodos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
+  vendasCliente.forEach(v => {
+    const h = new Date(v.data).getHours();
+    if (h >= 6 && h < 12) periodos["Manhã"]++;
+    else if (h >= 12 && h < 18) periodos["Tarde"]++;
+    else periodos["Noite"]++;
+  });
+  const horaFav = Object.entries(periodos).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+
+  // Histórico formatado
+  const historico = vendasCliente.slice(0, 30).map(v => ({
+    data: v.data,
+    valor: v.total || 0,
+    itens: (v.itens || []).length,
+    forma: v.formaPagamento || (v.pagamentos || [])[0]?.forma || "—"
+  }));
+
+  return { totalCompras, valorTotalGasto, ticketMedio, ultimaCompra, prodsFav, freqMensal, diaFav, horaFav, historico };
+}
+
+// ===== SALVAR =====
+window.salvarCliente = function() {
+  clearErr();
+  if (!validate()) return;
+
+  const tipo = $("#tipoPessoa").value;
+  const existing = editingId ? clientes.find(c => c.id === editingId) : null;
+
+  const obj = {
+    id: editingId || genId(),
+    tipo,
+    nome: tipo === "fisica" ? $("#nome").value.trim() : null,
+    razaoSocial: tipo === "juridica" ? $("#razaoSocial").value.trim() : null,
+    nomeFantasia: tipo === "juridica" ? $("#nomeFantasia").value.trim() : null,
+    cpf: tipo === "fisica" ? $("#cpf").value.trim() : null,
+    cnpj: tipo === "juridica" ? $("#cnpj").value.trim() : null,
+    telefone: $("#telefone").value.trim(),
+    email: $("#email").value.trim(),
+    dataNascimento: $("#dataNasc").value || null,
+    cep: $("#cep").value.trim(),
+    endereco: $("#endereco").value.trim(),
+    cidade: $("#cidade").value.trim(),
+    estado: $("#estado").value,
+    limiteCredito: parseFloat($("#limiteCredito").value) || 500,
+    debito: parseFloat($("#debito").value) || 0,
+    formaPagamento: $("#formaPag").value,
+    diaVencimento: $("#diaVenc").value,
+    status: $("#status").value,
+    observacoes: $("#obs").value.trim(),
+    // Preservar stats
+    totalCompras: existing?.totalCompras || 0,
+    valorTotalGasto: existing?.valorTotalGasto || 0,
+    ticketMedio: existing?.ticketMedio || 0,
+    ultimaCompra: existing?.ultimaCompra || null,
+    produtosFavoritos: existing?.produtosFavoritos || {},
+    historicoCompras: existing?.historicoCompras || [],
+    dataCadastro: existing?.dataCadastro || new Date().toISOString(),
+    dataAtualizacao: new Date().toISOString()
+  };
+
+  // Auto-classificação
+  obj.classificacao = calcClassificacao(obj);
+
+  if (editingId) {
+    const idx = clientes.findIndex(c => c.id === editingId);
+    if (idx > -1) clientes[idx] = obj;
+    toast("✅ Cliente atualizado!");
+  } else {
+    clientes.push(obj);
+    toast("✅ Cliente cadastrado!");
+  }
+
+  save();
+  editingId = obj.id;
+  renderLista();
+  updateAllStats(obj);
+  document.getElementById("btnExcluir").style.display = "";
+};
+
+// ===== EXCLUIR =====
+window.excluirCliente = function() {
+  if (!editingId) return;
+  const c = clientes.find(x => x.id === editingId);
+  if (!confirm(`Excluir "${c?.nome || c?.razaoSocial}"?`)) return;
+  clientes = clientes.filter(x => x.id !== editingId);
+  save();
+  limparForm();
+  renderLista();
+  toast("🗑️ Cliente excluído");
+};
+
+// ===== FORM =====
+function fillForm(c) {
+  $("#tipoPessoa").value = c.tipo || "fisica";
+  toggleTipo();
+  if (c.tipo === "juridica") {
+    $("#razaoSocial").value = c.razaoSocial || "";
+    $("#nomeFantasia").value = c.nomeFantasia || "";
+    $("#cnpj").value = c.cnpj || "";
+  } else {
+    $("#nome").value = c.nome || "";
+    $("#cpf").value = c.cpf || "";
+  }
+  $("#telefone").value = c.telefone || "";
+  $("#email").value = c.email || "";
+  $("#dataNasc").value = c.dataNascimento || "";
+  $("#cep").value = c.cep || "";
+  $("#endereco").value = c.endereco || "";
+  $("#cidade").value = c.cidade || "";
+  $("#estado").value = c.estado || "";
+  $("#limiteCredito").value = c.limiteCredito || 500;
+  $("#debito").value = c.debito || 0;
+  $("#formaPag").value = c.formaPagamento || "dinheiro";
+  $("#diaVenc").value = c.diaVencimento || "";
+  $("#status").value = c.status || "ativo";
+  $("#obs").value = c.observacoes || "";
+  document.getElementById("btnExcluir").style.display = "";
+  updateFinanceiroCards();
+}
+
+window.limparForm = function() {
+  editingId = null;
+  document.querySelectorAll("input,textarea").forEach(el => { if (el.type !== "button") el.value = ""; });
+  $("#tipoPessoa").value = "fisica"; toggleTipo();
+  $("#limiteCredito").value = "500"; $("#debito").value = "0";
+  $("#status").value = "ativo"; $("#formaPag").value = "dinheiro"; $("#diaVenc").value = "";
+  document.getElementById("btnExcluir").style.display = "none";
+  clearErr(); updateFinanceiroCards();
+  resetStats();
+  renderLista();
+};
+
+window.novoCliente = function() { limparForm(); $("#nome").focus(); };
+
+// ===== LISTA =====
+function renderLista() {
+  const q = $("#busca").value.toLowerCase().trim();
+  const fc = $("#filtroClass").value;
+  const fo = $("#filtroOrdem").value;
+
+  let list = [...clientes];
+  if (fc) list = list.filter(c => c.classificacao === fc);
+  if (q) list = list.filter(c => {
+    const n = (c.nome || c.razaoSocial || "").toLowerCase();
+    const t = (c.telefone || "").replace(/\D/g, "");
+    const d = (c.cpf || c.cnpj || "").replace(/\D/g, "");
+    return n.includes(q) || t.includes(q) || d.includes(q);
+  });
+
+  list.sort((a, b) => {
+    if (fo === "nome") return (a.nome || a.razaoSocial || "").localeCompare(b.nome || b.razaoSocial || "");
+    if (fo === "recente") return new Date(b.dataCadastro || 0) - new Date(a.dataCadastro || 0);
+    if (fo === "ticket") return (b.ticketMedio || 0) - (a.ticketMedio || 0);
+    if (fo === "compras") return (b.totalCompras || 0) - (a.totalCompras || 0);
+    return 0;
+  });
+
+  $("#listCount").textContent = `${list.length} cliente${list.length !== 1 ? "s" : ""}`;
+  const el = $("#clientesList");
+
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>Nenhum cliente</p></div>';
+    return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const nome = c.nome || c.razaoSocial || "—";
+    const cls = c.classificacao || "novo";
+    const badgeMap = { vip: "badge-vip", premium: "badge-premium", regular: "badge-regular", novo: "badge-novo" };
+    const labelMap = { vip: "VIP", premium: "Premium", regular: "Regular", novo: "Novo" };
+    return `<div class="cliente-item ${editingId === c.id ? 'active' : ''}" onclick="selecionarCliente('${c.id}')">
+      <div class="cliente-nome">${nome} <span class="badge ${badgeMap[cls] || 'badge-novo'}">${labelMap[cls] || 'Novo'}</span></div>
+      <div class="cliente-info">📞 ${c.telefone || "—"} • ${c.totalCompras || 0} compras</div>
+    </div>`;
+  }).join("");
+}
+
+// ===== SELECIONAR =====
+window.selecionarCliente = function(id) {
+  const c = clientes.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  fillForm(c);
+  renderLista();
+
+  // Recalcular stats do histórico de vendas
+  const stats = calcStatsFromVendas(id);
+  if (stats.totalCompras > 0) {
+    c.totalCompras = stats.totalCompras;
+    c.valorTotalGasto = stats.valorTotalGasto;
+    c.ticketMedio = stats.ticketMedio;
+    c.ultimaCompra = stats.ultimaCompra;
+    c.classificacao = calcClassificacao(c);
+    save();
+  }
+  updateAllStats(c, stats);
+};
+
+// ===== UPDATE ALL STATS =====
+function updateAllStats(c, stats) {
+  if (!stats) stats = calcStatsFromVendas(c.id);
+  const total = stats.totalCompras || c.totalCompras || 0;
+  const valor = stats.valorTotalGasto || c.valorTotalGasto || 0;
+  const ticket = total > 0 ? valor / total : 0;
+
+  // Histórico tab
+  $("#sTotalCompras").textContent = total;
+  $("#sValorTotal").textContent = fmt(valor);
+  $("#sTicket").textContent = fmt(ticket);
+  $("#sUltima").textContent = (stats.ultimaCompra || c.ultimaCompra) ? new Date(stats.ultimaCompra || c.ultimaCompra).toLocaleDateString("pt-BR") : "Nunca";
+
+  // Financeiro
+  updateFinanceiroCards();
+
+  // Análise
+  $("#sFreq").textContent = (stats.freqMensal || 0) + "x";
+  $("#sDia").textContent = stats.diaFav || "—";
+  $("#sHora").textContent = stats.horaFav || "—";
+  $("#sClass").textContent = { vip: "VIP", premium: "Premium", regular: "Regular", novo: "Novo" }[c.classificacao || "novo"];
+
+  // Histórico lista
+  const hist = stats.historico || [];
+  if (hist.length === 0) {
+    $("#histList").innerHTML = '<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma compra registrada</p></div>';
+  } else {
+    $("#histList").innerHTML = hist.map(h => `<div class="hist-item">
+      <div class="hist-header">
+        <span class="hist-data">📅 ${new Date(h.data).toLocaleString("pt-BR")}</span>
+        <span class="hist-valor">${fmt(h.valor)}</span>
+      </div>
+      <div class="hist-det">${h.itens} ${h.itens === 1 ? "item" : "itens"} • ${h.forma}</div>
+    </div>`).join("");
+  }
+
+  // Produtos favoritos
+  const prods = stats.prodsFav || c.produtosFavoritos || {};
+  const entries = Object.entries(prods).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  if (entries.length === 0) {
+    $("#prodsFav").innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>Dados insuficientes</p></div>';
+  } else {
+    $("#prodsFav").innerHTML = entries.map(([p, q]) => `<div class="tend-item"><span class="tend-label">${p}</span><span class="tend-valor">${q}x</span></div>`).join("");
+  }
+
+  // Insights
+  renderInsights(c, stats);
+}
+
+function resetStats() {
+  ["sTotalCompras", "sFreq"].forEach(id => document.getElementById(id).textContent = "0");
+  ["sValorTotal", "sTicket", "sCredito", "sDebito", "sLimite"].forEach(id => document.getElementById(id).textContent = "R$ 0");
+  ["sDia", "sHora"].forEach(id => document.getElementById(id).textContent = "—");
+  $("#sClass").textContent = "Novo";
+  $("#sUltima").textContent = "Nunca";
+  $("#histList").innerHTML = '<div class="empty"><div class="empty-icon">📦</div><p>Nenhuma compra</p></div>';
+  $("#prodsFav").innerHTML = '<div class="empty"><div class="empty-icon">📊</div><p>Dados insuficientes</p></div>';
+  $("#insights").innerHTML = '<p style="color:#94a3b8;text-align:center">Insights após algumas compras</p>';
+}
+
+// ===== INSIGHTS =====
+function renderInsights(c, stats) {
+  const ins = [];
+  const freq = stats?.freqMensal || 0;
+  const ticket = stats?.ticketMedio || c.ticketMedio || 0;
+  const deb = c.debito || 0;
+  const lim = c.limiteCredito || 0;
+  const total = c.totalCompras || 0;
+
+  if (freq >= 4) ins.push("🔥 Cliente muito fiel! Compra toda semana.");
+  else if (freq >= 2) ins.push("✅ Cliente frequente. Compra regularmente.");
+  else if (freq < 0.5 && total > 0) ins.push("⚠️ Cliente inativo. Considere campanha de reativação.");
+
+  if (ticket >= 200) ins.push("💎 Alto valor de compra. Cliente premium.");
+  else if (ticket <= 50 && total > 3) ins.push("💡 Oportunidade para aumentar ticket médio.");
+
+  if (stats?.diaFav && stats.diaFav !== "—") ins.push(`📅 Prefere comprar na ${stats.diaFav}.`);
+
+  if (deb > 0 && lim > 0) {
+    const perc = (deb / lim) * 100;
+    if (perc >= 90) ins.push("🚨 Limite de crédito quase esgotado!");
+    else if (perc >= 70) ins.push("⚡ Crédito em " + perc.toFixed(0) + "%. Monitorar.");
+  }
+
+  if (c.status === "inadimplente") ins.push("⚠️ Cliente marcado como inadimplente.");
+  if (c.status === "bloqueado") ins.push("🔒 Cliente bloqueado.");
+
+  const box = $("#insights");
+  if (ins.length === 0) {
+    box.innerHTML = '<p style="color:#94a3b8;text-align:center">Insights após algumas compras</p>';
+  } else {
+    box.innerHTML = ins.map(i => `<div class="insight-item">${i}</div>`).join("");
+  }
+}
+
+// ===== TOAST =====
+function toast(msg, type = "success") {
+  const t = $("#toast");
+  t.textContent = msg; t.className = `toast ${type}`;
+  requestAnimationFrame(() => t.classList.add("show"));
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+// ===== LISTENERS =====
+["busca", "filtroClass", "filtroOrdem"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", renderLista);
+  document.getElementById(id)?.addEventListener("change", renderLista);
+});
+
+window.addEventListener("storage", (e) => {
+  if (e.key === "fazzo_clientes") { load(); renderLista(); if(editingId) selecionarCliente(editingId); }
+});
+
+
+// ===== INIT =====
+load();
+renderLista();
+toggleTipo();
+updateFinanceiroCards();
+</script>
+</body>
+</html>

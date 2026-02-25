@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estoque — Fazzo PDV</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.bar{background:#4f7cff;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:15px;position:sticky;top:0;z-index:100}
+.link{color:#fff;text-decoration:none;font-size:14px;opacity:.9}.link:hover{opacity:1}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.top{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.top input{flex:1;min-width:200px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+.top input:focus{outline:none;border-color:#4f7cff;box-shadow:0 0 0 3px rgba(79,124,255,.15)}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-primary{background:#4f7cff;color:#fff}.btn-primary:hover{background:#3b6ce7}
+.btn-success{background:#22c55e;color:#fff}.btn-success:hover{background:#16a34a}
+.btn-warning{background:#f59e0b;color:#fff}.btn-warning:hover{background:#d97706}
+.btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-ghost{background:#e2e8f0;color:#334155}.btn-ghost:hover{background:#cbd5e1}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.card h3{font-size:16px;margin-bottom:14px}
+.stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:#fff;padding:14px 20px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);text-align:center;flex:1;min-width:120px}
+.stat .n{font-size:22px;font-weight:800;color:#4f7cff}.stat .l{font-size:12px;color:#64748b}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f8fafc;font-weight:600;color:#475569;font-size:13px}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.badge.ok{background:#dcfce7;color:#16a34a}.badge.low{background:#fef3c7;color:#d97706}.badge.out{background:#fee2e2;color:#dc2626}
+.empty{text-align:center;color:#94a3b8;padding:30px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-bg.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-header{background:#1e293b;color:#fff;padding:14px 20px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;gap:12px;justify-content:flex-end}
+.field{margin-bottom:12px}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:4px;color:#334155}
+.field input,.field select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px}
+.field input:focus,.field select:focus{outline:none;border-color:#4f7cff}
+.hist{font-size:13px;color:#64748b;max-height:200px;overflow-y:auto;margin-top:8px}
+.hist-item{padding:6px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between}
+.hist-item .tipo-e{color:#22c55e;font-weight:600}.hist-item .tipo-s{color:#ef4444;font-weight:600}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div>📦 Controle de Estoque</div>
+  <a href="pdv.html" class="link">← Voltar ao PDV</a>
+</header>
+
+<div class="container">
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="sTotal">0</div><div class="l">Produtos</div></div>
+    <div class="stat"><div class="n" id="sUnidades">0</div><div class="l">Unidades</div></div>
+    <div class="stat"><div class="n" id="sValor">R$ 0</div><div class="l">Valor Total</div></div>
+    <div class="stat"><div class="n" id="sBaixo">0</div><div class="l">Estoque Baixo</div></div>
+  </div>
+
+  <div class="top">
+    <input id="busca" placeholder="Buscar produto..." autocomplete="off">
+    <button class="btn btn-success" onclick="exportar()">📤 Exportar .fazzo</button>
+    <button class="btn btn-warning" onclick="document.getElementById('importFile').click()">📥 Importar .fazzo</button>
+    <input type="file" id="importFile" accept=".fazzo" style="display:none">
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Produto</th><th>Código</th><th>Estoque</th><th>Mín.</th><th>Custo</th><th>Valor Est.</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="histCard" style="display:none">
+    <h3>📋 Histórico de Movimentações</h3>
+    <div class="hist" id="histList"></div>
+  </div>
+</div>
+
+<!-- Modal Entrada/Saída -->
+<div class="modal-bg" id="movModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="movTitle">Movimentação</h3>
+      <button class="modal-close" onclick="fecharMov()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="movIdx">
+      <div class="field"><label>Produto</label><input id="movProd" readonly></div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="movTipo">
+          <option value="entrada">📥 Entrada</option>
+          <option value="saida">📤 Saída</option>
+        </select>
+      </div>
+      <div class="field"><label>Quantidade</label><input id="movQtd" type="number" min="1" value="1"></div>
+      <div class="field"><label>Motivo</label><input id="movMotivo" placeholder="Ex: Compra fornecedor, Perda..."></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="fecharMov()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMov()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_PROD = "produtos", LS_MOV = "movimentacoes";
+
+function getProdutos() { return JSON.parse(localStorage.getItem(LS_PROD) || "[]"); }
+function saveProdutos(a) { localStorage.setItem(LS_PROD, JSON.stringify(a)); }
+function getMov() { return JSON.parse(localStorage.getItem(LS_MOV) || "[]"); }
+function saveMov(a) { localStorage.setItem(LS_MOV, JSON.stringify(a)); }
+const fmt = n => "R$ " + (n || 0).toFixed(2).replace(".", ",");
+
+function render() {
+  const q = document.getElementById("busca").value.toLowerCase().trim();
+  const prods = getProdutos();
+  const filtered = prods.filter(p =>
+    (p.nome || "").toLowerCase().includes(q) || (p.codigoBarras || "").includes(q)
+  );
+
+  const ativos = prods.filter(p => p.ativo !== false);
+  const unidades = ativos.reduce((s, p) => s + (+p.estoque || 0), 0);
+  const valor = ativos.reduce((s, p) => s + (+p.estoque || 0) * (+p.precoCusto || 0), 0);
+  const baixo = ativos.filter(p => (+p.min || 0) > 0 && (+p.estoque || 0) <= (+p.min || 0)).length;
+
+  document.getElementById("sTotal").textContent = ativos.length;
+  document.getElementById("sUnidades").textContent = unidades;
+  document.getElementById("sValor").textContent = fmt(valor);
+  document.getElementById("sBaixo").textContent = baixo;
+
+  const tbody = document.getElementById("tBody");
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Nenhum produto</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((p, fi) => {
+    const idx = prods.indexOf(p);
+    const est = +p.estoque || 0;
+    const min = +p.min || 0;
+    const valorEst = est * (+p.precoCusto || 0);
+    let status, badge;
+    if (est === 0) { status = "out"; badge = "ZERADO"; }
+    else if (min > 0 && est <= min) { status = "low"; badge = "BAIXO"; }
+    else { status = "ok"; badge = "OK"; }
+
+    return `<tr>
+      <td>${p.nome || "—"}</td>
+      <td>${p.codigoBarras || "—"}</td>
+      <td><b>${est}</b></td>
+      <td>${min}</td>
+      <td>${fmt(+p.precoCusto || 0)}</td>
+      <td>${fmt(valorEst)}</td>
+      <td><span class="badge ${status}">${badge}</span></td>
+      <td class="actions">
+        <button class="btn btn-primary" onclick="abrirMov(${idx})">📦</button>
+        <button class="btn btn-ghost" onclick="verHist(${idx})">📋</button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ===== MOVIMENTAÇÃO =====
+window.abrirMov = (idx) => {
+  const p = getProdutos()[idx];
+  if (!p) return;
+  document.getElementById("movIdx").value = idx;
+  document.getElementById("movProd").value = `${p.nome} (Estoque: ${+p.estoque || 0})`;
+  document.getElementById("movTipo").value = "entrada";
+  document.getElementById("movQtd").value = 1;
+  document.getElementById("movMotivo").value = "";
+  document.getElementById("movTitle").textContent = `📦 ${p.nome}`;
+  document.getElementById("movModal").classList.add("show");
+};
+
+window.fecharMov = () => document.getElementById("movModal").classList.remove("show");
+
+window.salvarMov = () => {
+  const idx = parseInt(document.getElementById("movIdx").value);
+  const tipo = document.getElementById("movTipo").value;
+  const qtd = parseInt(document.getElementById("movQtd").value) || 0;
+  const motivo = document.getElementById("movMotivo").value.trim();
+  if (qtd <= 0) return alert("Quantidade inválida!");
+
+  const prods = getProdutos();
+  const p = prods[idx];
+  if (!p) return;
+
+  const estAnterior = +p.estoque || 0;
+  if (tipo === "entrada") p.estoque = estAnterior + qtd;
+  else {
+    if (qtd > estAnterior) return alert(`Estoque insuficiente! Tem ${estAnterior}.`);
+    p.estoque = estAnterior - qtd;
+  }
+  p.ultimaMov = new Date().toISOString();
+  prods[idx] = p;
+  saveProdutos(prods);
+
+  // Registrar movimentação
+  const movs = getMov();
+  movs.push({
+    produto: p.nome, codigoBarras: p.codigoBarras || "",
+    tipo, qtd, motivo,
+    estAnterior, estNovo: p.estoque,
+    data: new Date().toISOString()
+  });
+  saveMov(movs);
+
+  fecharMov();
+  render();
+};
+
+// ===== HISTÓRICO =====
+window.verHist = (idx) => {
+  const p = getProdutos()[idx];
+  if (!p) return;
+  const movs = getMov().filter(m => m.produto === p.nome || m.codigoBarras === p.codigoBarras);
+  const card = document.getElementById("histCard");
+  const list = document.getElementById("histList");
+
+  if (movs.length === 0) {
+    list.innerHTML = '<div class="empty">Sem movimentações</div>';
+  } else {
+    list.innerHTML = movs.slice().reverse().map(m => `
+      <div class="hist-item">
+        <span class="tipo-${m.tipo === 'entrada' ? 'e' : 's'}">${m.tipo === 'entrada' ? '📥 +' : '📤 -'}${m.qtd}</span>
+        <span>${m.motivo || "—"}</span>
+        <span>${m.estAnterior} → ${m.estNovo}</span>
+        <span>${new Date(m.data).toLocaleDateString("pt-BR")}</span>
+      </div>
+    `).join("");
+  }
+  card.style.display = "";
+  card.scrollIntoView({ behavior: "smooth" });
+};
+
+// ===== IMPORT / EXPORT .fazzo =====
+window.exportar = () => {
+  const prods = getProdutos();
+  const movs = getMov();
+  const blob = new Blob([JSON.stringify({ produtos: prods, movimentacoes: movs, exportado: new Date().toISOString() })], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `estoque_${new Date().toISOString().slice(0, 10)}.fazzo`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+document.getElementById("importFile").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.produtos && Array.isArray(data.produtos)) {
+        const current = getProdutos();
+        let added = 0, updated = 0;
+        data.produtos.forEach(p => {
+          const idx = current.findIndex(c => c.codigoBarras && c.codigoBarras === p.codigoBarras);
+          if (idx > -1) { current[idx] = { ...current[idx], ...p }; updated++; }
+          else { current.push(p); added++; }
+        });
+        saveProdutos(current);
+        alert(`✅ Importado: ${added} novos, ${updated} atualizados`);
+      }
+      if (data.movimentacoes && Array.isArray(data.movimentacoes)) {
+        const movs = getMov();
+        saveMov([...movs, ...data.movimentacoes]);
+      }
+      render();
+    } catch (err) {
+      alert("❌ Arquivo inválido: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+document.getElementById("busca").addEventListener("input", render);
+document.getElementById("movModal").addEventListener("click", e => { if (e.target.id === "movModal") fecharMov(); });
+render();
+</script>
+</body>
+</html>

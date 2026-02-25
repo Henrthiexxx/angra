@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fatura — Fazzo PDV</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0b1120;
+    --surface: #131d30;
+    --card:    #1a2540;
+    --border:  rgba(255,255,255,.07);
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --accent:  #4f7cff;
+    --green:   #10b981;
+    --amber:   #f59e0b;
+    --red:     #ef4444;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 20px; display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header a { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .header a:hover { color: var(--text); }
+  .header h1 { font-family: 'Syne', sans-serif; font-size: 18px; color: #fff; margin-left: 4px; }
+
+  .content { max-width: 760px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  /* STATUS BANNER */
+  .status-banner {
+    border-radius: 14px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px; border: 1px solid;
+  }
+  .status-banner.ok       { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.25); }
+  .status-banner.pendente { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3); }
+  .status-banner.vencido  { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.3); }
+  .status-banner .sb-icon { font-size: 28px; flex-shrink: 0; }
+  .status-banner .sb-text h3 { font-size: 15px; font-weight: 700; }
+  .status-banner .sb-text p  { font-size: 13px; opacity: .7; margin-top: 2px; }
+  .status-banner.ok       .sb-text h3 { color: var(--green); }
+  .status-banner.pendente .sb-text h3 { color: var(--amber); }
+  .status-banner.vencido  .sb-text h3 { color: var(--red); }
+
+  /* SECTION */
+  .section-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* INVOICE CARD */
+  .invoice-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 24px;
+  }
+  .invoice-header {
+    background: linear-gradient(135deg, #1a2d50, #1e2a40);
+    padding: 20px 24px; display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 1px solid var(--border);
+  }
+  .invoice-header h2 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #fff; }
+  .invoice-header .periodo { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .invoice-num { text-align: right; }
+  .invoice-num span { font-size: 12px; color: var(--muted); display: block; }
+  .invoice-num strong { font-size: 14px; color: var(--text); font-weight: 700; }
+
+  /* LINE ITEMS */
+  .line-items { padding: 8px 0; }
+  .line-item {
+    display: grid; grid-template-columns: 40px 1fr auto auto;
+    gap: 12px; align-items: center;
+    padding: 14px 24px; border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .line-item:last-child { border-bottom: none; }
+  .line-item:hover { background: rgba(255,255,255,.02); }
+  .li-icon { font-size: 22px; text-align: center; }
+  .li-info .li-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .li-info .li-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .li-qty { font-size: 13px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .li-price { font-size: 15px; font-weight: 700; color: #fff; text-align: right; white-space: nowrap; min-width: 90px; }
+  .li-price.free { color: var(--green); }
+
+  .empty-services {
+    padding: 48px 24px; text-align: center; color: var(--muted); font-size: 14px;
+  }
+  .empty-services span { font-size: 40px; display: block; margin-bottom: 10px; opacity: .3; }
+
+  /* TOTALS */
+  .invoice-totals { border-top: 1px solid var(--border); padding: 20px 24px; }
+  .tot-row {
+    display: flex; justify-content: space-between;
+    font-size: 14px; padding: 5px 0; color: var(--muted);
+  }
+  .tot-row.total {
+    font-size: 24px; font-weight: 800; color: #fff;
+    padding-top: 14px; margin-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .tot-row.total span:last-child { color: var(--accent); }
+
+  /* VENCIMENTO */
+  .venc-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; background: rgba(255,255,255,.03);
+    border-top: 1px solid var(--border);
+  }
+  .venc-label { font-size: 13px; color: var(--muted); }
+  .venc-date  { font-size: 14px; font-weight: 700; color: var(--text); }
+  .venc-status {
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .vs-ok      { background: rgba(16,185,129,.15); color: var(--green); }
+  .vs-pending { background: rgba(245,158,11,.15);  color: var(--amber); }
+  .vs-late    { background: rgba(239,68,68,.15);   color: var(--red); }
+
+  /* HISTORICO */
+  .hist-list { display: flex; flex-direction: column; gap: 8px; }
+  .hist-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px;
+  }
+  .hist-icon { font-size: 20px; width: 36px; text-align: center; flex-shrink: 0; }
+  .hist-info { flex: 1; min-width: 0; }
+  .hist-info .hi-desc { font-size: 14px; font-weight: 600; }
+  .hist-info .hi-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hist-val  { font-size: 15px; font-weight: 700; }
+  .hist-val.pago { color: var(--green); }
+  .hist-status {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+  }
+  .hs-pago    { background: rgba(16,185,129,.15); color: var(--green); }
+  .hs-pendente{ background: rgba(245,158,11,.15);  color: var(--amber); }
+  .hs-vencido { background: rgba(239,68,68,.15);   color: var(--red); }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; font-size: 28px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="servicos.html">← Serviços</a>
+  <h1>🧾 Minha Fatura</h1>
+</div>
+
+<div class="content" id="content">
+  <div class="loading"><span class="spin">⏳</span><br>Carregando fatura...</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+  const db = firebase.firestore();
+
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    const userDoc = await db.collection('usuarios').doc(user.uid).get();
+    if (userDoc.exists && userDoc.data().bloqueado) {
+      window.location.href = 'bloqueado.html'; return;
+    }
+    await renderFatura(user);
+  });
+
+  async function renderFatura(user) {
+    // Carregar catálogo e assinaturas em paralelo
+    const [catalogoSnap, ativosSnap, faturaSnap] = await Promise.all([
+      db.collection('servicos').where('ativo', '==', true).get(),
+      db.collection('usuarios').doc(user.uid).collection('servicos_ativos').get(),
+      db.collection('usuarios').doc(user.uid).collection('faturas')
+        .orderBy('criadoEm', 'desc').limit(6).get()
+    ]);
+
+    const catalogo = {};
+    catalogoSnap.docs.forEach(d => catalogo[d.id] = { id: d.id, ...d.data() });
+
+    const ativos = ativosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const faturas = faturaSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Calcular total da fatura atual
+    let total = 0;
+    ativos.forEach(a => {
+      const s = catalogo[a.servicoId];
+      if (s) total += (s.preco || 0);
+    });
+
+    // Determinar status de cobrança
+    const userInfo = (await db.collection('usuarios').doc(user.uid).get()).data() || {};
+    const status = userInfo.statusPagamento || 'ok';
+
+    // Próximo vencimento (30 dias do mais antigo ativo)
+    let proxVenc = null;
+    if (ativos.length) {
+      const datas = ativos.map(a => new Date(a.vencimento || a.ativadoEm)).filter(d => !isNaN(d));
+      if (datas.length) proxVenc = new Date(Math.min(...datas));
+    }
+
+    const hoje = new Date();
+    const statusVenc = proxVenc
+      ? (proxVenc < hoje ? 'vencido' : proxVenc - hoje < 5 * 86400000 ? 'pendente' : 'ok')
+      : 'ok';
+
+    const mesAtual = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date());
+    const fatNum = `FAT-${user.uid.slice(0,4).toUpperCase()}-${Date.now().toString().slice(-5)}`;
+
+    // Salvar fatura no servidor se não existir este mês
+    const mesKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const fatRef = db.collection('usuarios').doc(user.uid).collection('faturas').doc(mesKey);
+    const fatExist = await fatRef.get();
+    if (!fatExist.exists && ativos.length > 0) {
+      const itens = ativos.map(a => {
+        const s = catalogo[a.servicoId] || {};
+        return { servicoId: a.servicoId, nome: s.nome || a.servicoId, preco: s.preco || 0, periodo: s.periodo || 'mês' };
+      });
+      await fatRef.set({
+        uid: user.uid, mes: mesKey, total, itens,
+        status: 'pendente', criadoEm: new Date().toISOString(),
+        vencimento: proxVenc ? proxVenc.toISOString() : null
+      });
+    }
+
+    // Render
+    const content = document.getElementById('content');
+    const bannerMap = {
+      ok:       { cls: 'ok',       icon: '✅', titulo: 'Conta em dia', sub: 'Todos os pagamentos estão em ordem.' },
+      pendente: { cls: 'pendente', icon: '⚠️', titulo: 'Pagamento pendente', sub: 'Regularize sua situação para evitar bloqueios.' },
+      bloqueado:{ cls: 'vencido',  icon: '🔒', titulo: 'Conta suspensa', sub: 'Entre em contato com o administrador.' }
+    };
+    const banner = bannerMap[status] || bannerMap.ok;
+
+    const linhas = ativos.length ? ativos.map(a => {
+      const s = catalogo[a.servicoId];
+      if (!s) return '';
+      const preco = s.preco || 0;
+      return `
+        <div class="line-item">
+          <div class="li-icon">${s.icone || '🔧'}</div>
+          <div class="li-info">
+            <div class="li-name">${s.nome}</div>
+            <div class="li-sub">${s.periodo === 'uso' ? 'Por uso' : 'Assinatura ' + (s.periodo || 'mensal')} · Ativo desde ${fmtDate(a.ativadoEm)}</div>
+          </div>
+          <div class="li-qty">1x</div>
+          <div class="li-price ${preco === 0 ? 'free' : ''}">
+            ${preco === 0 ? 'Grátis' : 'R$ ' + preco.toFixed(2).replace('.', ',')}
+          </div>
+        </div>`;
+    }).join('') : '<div class="empty-services"><span>📭</span>Nenhum serviço ativo neste período.</div>';
+
+    const histHTML = faturas.length ? faturas.map(f => {
+      const stCls = { pago: 'hs-pago', pendente: 'hs-pendente', vencido: 'hs-vencido' }[f.status] || 'hs-pendente';
+      const stLabel = { pago: 'Pago', pendente: 'Pendente', vencido: 'Vencido' }[f.status] || 'Pendente';
+      return `
+        <div class="hist-item">
+          <div class="hist-icon">${f.status === 'pago' ? '✅' : '🧾'}</div>
+          <div class="hist-info">
+            <div class="hi-desc">Fatura ${f.mes || '—'} · ${(f.itens||[]).length} serviço(s)</div>
+            <div class="hi-date">Emitida em ${fmtDate(f.criadoEm)}</div>
+          </div>
+          <div class="hist-val pago">R$ ${(f.total||0).toFixed(2).replace('.', ',')}</div>
+          <div class="hist-status ${stCls}">${stLabel}</div>
+        </div>`;
+    }).join('') : '<div style="color:#475569;font-size:14px;padding:12px 0">Nenhuma fatura anterior.</div>';
+
+    const vencLabel = proxVenc ? proxVenc.toLocaleDateString('pt-BR') : '—';
+    const vencCls   = { ok: 'vs-ok', pendente: 'vs-pending', vencido: 'vs-late' }[statusVenc] || 'vs-ok';
+    const vencTxt   = { ok: 'Em dia', pendente: 'Vence em breve', vencido: 'Vencido' }[statusVenc] || 'Em dia';
+
+    content.innerHTML = `
+      <div class="status-banner ${banner.cls}">
+        <span class="sb-icon">${banner.icon}</span>
+        <div class="sb-text"><h3>${banner.titulo}</h3><p>${banner.sub}</p></div>
+      </div>
+
+      <div class="section-label">Fatura atual</div>
+      <div class="invoice-card">
+        <div class="invoice-header">
+          <div>
+            <h2>Fatura ${mesAtual}</h2>
+            <div class="periodo">Período de referência: ${mesKey}</div>
+          </div>
+          <div class="invoice-num">
+            <span>Nº</span><strong>${fatNum}</strong>
+          </div>
+        </div>
+        <div class="line-items">${linhas}</div>
+        <div class="invoice-totals">
+          <div class="tot-row"><span>Subtotal</span><span>R$ ${total.toFixed(2).replace('.', ',')}</span></div>
+          <div class="tot-row"><span>Desconto</span><span>R$ 0,00</span></div>
+          <div class="tot-row total"><span>Total</span><span>R$ ${total.toFixed(2).replace('.', ',')}</span></div>
+        </div>
+        <div class="venc-row">
+          <div><div class="venc-label">Vencimento</div><div class="venc-date">${vencLabel}</div></div>
+          <div class="venc-status ${vencCls}">${vencTxt}</div>
+        </div>
+      </div>
+
+      <div class="section-label">Histórico</div>
+      <div class="hist-list">${histHTML}</div>
+    `;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('pt-BR');
+  }
+</script>
+</body>
+</html>

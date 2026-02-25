@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backup Admin — Fazzo PDV</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #151820;
+    --border:    #1e2330;
+    --border2:   #2a3040;
+    --text:      #c8d0e0;
+    --muted:     #5a6480;
+    --accent:    #4f7cff;
+    --accent2:   #22c55e;
+    --warn:      #f59e0b;
+    --danger:    #ef4444;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.03) 2px,
+      rgba(0,0,0,.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: grid; place-items: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .header-right {
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    border: 1px solid var(--border2);
+    background: var(--bg);
+    color: var(--muted);
+  }
+  .pill.ok  { border-color: rgba(34,197,94,.4); color: var(--accent2); background: rgba(34,197,94,.05); }
+  .pill.warn{ border-color: rgba(245,158,11,.4); color: var(--warn);   background: rgba(245,158,11,.05); }
+  .pill.err { border-color: rgba(239,68,68,.4);  color: var(--danger); background: rgba(239,68,68,.05); }
+  .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .dot.pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .btn-back {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-back:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .page { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ── STATUS CARDS ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .card::after {
+    content: '';
+    position: absolute; top:0; left:0; right:0;
+    height: 2px;
+    background: var(--accent);
+    opacity: .5;
+  }
+  .card.green::after { background: var(--accent2); }
+  .card.amber::after { background: var(--warn); }
+  .card.red::after   { background: var(--danger); }
+
+  .card-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── ACTIONS BAR ── */
+  .actions-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    transition: all .2s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:active { transform: scale(.97); }
+  .btn.primary {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { background: #6b94ff; border-color: #6b94ff; color: #fff; }
+  .btn.danger  { border-color: rgba(239,68,68,.5); color: var(--danger); }
+  .btn.danger:hover { background: rgba(239,68,68,.08); border-color: var(--danger); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab {
+    padding: 9px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all .2s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── LIST ── */
+  .backup-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .backup-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color .2s, background .2s;
+    cursor: default;
+  }
+  .backup-item:hover { border-color: var(--border2); background: #1a1f2a; }
+
+  .bi-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    background: rgba(79,124,255,.1);
+    border: 1px solid rgba(79,124,255,.2);
+  }
+  .bi-icon.drive { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.2); }
+
+  .bi-info { flex: 1; min-width: 0; }
+  .bi-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bi-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+
+  .bi-size {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .bi-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .bi-btn {
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .bi-btn:hover { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,.06); }
+  .bi-btn.restore { border-color: rgba(79,124,255,.4); color: var(--accent); }
+  .bi-btn.restore:hover { background: rgba(79,124,255,.1); border-color: var(--accent); }
+  .bi-btn.delete:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.06); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+  .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* ── MODAL CONFIRM ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 500;
+    display: none; place-items: center;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.show { display: grid; animation: fadeIn .15s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .dialog {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 28px 28px 22px;
+    width: min(420px, calc(100vw - 32px));
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    animation: slideUp .2s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:none;opacity:1} }
+
+  .dialog-icon { font-size: 36px; margin-bottom: 14px; }
+  .dialog h3 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .dialog p {
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .dialog-target {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--warn);
+    margin-bottom: 20px;
+    word-break: break-all;
+  }
+  .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── LOG ── */
+  .log-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.8;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-top: 20px;
+    color: var(--muted);
+  }
+  .log-box .log-line { display: flex; gap: 12px; }
+  .log-box .log-time { color: var(--border2); flex-shrink: 0; }
+  .log-box .log-ok   { color: var(--accent2); }
+  .log-box .log-warn { color: var(--warn); }
+  .log-box .log-err  { color: var(--danger); }
+  .log-box .log-info { color: var(--accent); }
+
+  /* ── PROGRESS ── */
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 16px;
+    display: none;
+  }
+  .progress-bar.show { display: block; }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width .3s ease;
+    border-radius: 2px;
+  }
+  .progress-fill.indeterminate {
+    width: 40%;
+    animation: indeterminate 1.2s ease-in-out infinite;
+  }
+  @keyframes indeterminate {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+
+  /* ── SCROLL ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  /* ── TOAST ── */
+  .toast-container {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 9000;
+  }
+  .toast {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    animation: toastIn .25s ease;
+    max-width: 320px;
+  }
+  .toast.ok   { border-color: rgba(34,197,94,.5); color: var(--accent2); }
+  .toast.err  { border-color: rgba(239,68,68,.5); color: var(--danger); }
+  .toast.warn { border-color: rgba(245,158,11,.5); color: var(--warn); }
+  @keyframes toastIn { from{transform:translateX(20px);opacity:0} to{transform:none;opacity:1} }
+
+  @media(max-width: 600px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+    .bi-size { display: none; }
+    header { padding: 12px 16px; }
+    .page { padding: 18px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">💾</div>
+    <div>
+      <div style="font-size:14px">Backup Admin</div>
+      <div style="font-size:10px;font-weight:400;color:var(--muted)">Fazzo PDV</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="pill" id="pillStatus">
+      <span class="dot pulse"></span>
+      <span id="pillText">Verificando...</span>
+    </div>
+    <button class="btn-back" onclick="history.back()">← Voltar</button>
+  </div>
+</header>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- STATUS CARDS -->
+  <div class="cards">
+    <div class="card green">
+      <div class="card-label">Último Backup Drive</div>
+      <div class="card-value" id="cardUltimoDrive">—</div>
+      <div class="card-sub" id="cardUltimoDriveSub">Nunca realizado</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Snapshots Locais</div>
+      <div class="card-value" id="cardSnapshotsCount">0</div>
+      <div class="card-sub">nas últimas 24h</div>
+    </div>
+    <div class="card amber">
+      <div class="card-label">Próximo Backup</div>
+      <div class="card-value" id="cardProximo">00:00:00</div>
+      <div class="card-sub">meia-noite automático</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Tamanho Total LS</div>
+      <div class="card-value" id="cardTamanho">—</div>
+      <div class="card-sub" id="cardChaves">0 chaves fazzo_*</div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions-bar">
+    <button class="btn primary" id="btnBackupAgora" onclick="backupAgora()">
+      ☁️ Backup agora
+    </button>
+    <button class="btn" onclick="salvarSnapshotManual()">
+      📸 Snapshot manual
+    </button>
+    <button class="btn" onclick="exportarJSON()">
+      ⬇️ Baixar .json
+    </button>
+    <button class="btn" onclick="importarJSON()">
+      ⬆️ Importar .json
+    </button>
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="onFileImport(event)">
+    <button class="btn" id="btnListarDrive" onclick="listarDrive()">
+      🔍 Listar Drive
+    </button>
+  </div>
+
+  <div class="progress-bar" id="progress"><div class="progress-fill indeterminate" id="progressFill"></div></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" id="tab-local" onclick="switchTab('local')">📦 Snapshots Locais</div>
+    <div class="tab"        id="tab-drive" onclick="switchTab('drive')">☁️ Backups no Drive</div>
+  </div>
+
+  <!-- LOCAL LIST -->
+  <div id="panel-local">
+    <div class="section-title">
+      <span>Snapshots no localStorage</span>
+      <button class="bi-btn" onclick="limparSnapshots()" style="font-size:11px;padding:3px 8px">🗑️ Limpar antigos</button>
+    </div>
+    <div class="backup-list" id="localList">
+      <div class="empty-state">
+        <div class="empty-icon">🗂️</div>
+        Carregando snapshots...
+      </div>
+    </div>
+  </div>
+
+  <!-- DRIVE LIST -->
+  <div id="panel-drive" style="display:none">
+    <div class="section-title">Backups salvos no Google Drive</div>
+    <div class="backup-list" id="driveList">
+      <div class="empty-state">
+        <div class="empty-icon">☁️</div>
+        Clique em "Listar Drive" para buscar backups
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="section-title" style="margin-top:28px">Log de atividade</div>
+  <div class="log-box" id="logBox">
+    <div class="log-line"><span class="log-time">--:--:--</span><span class="log-info">Sistema iniciado.</span></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="overlay" id="overlay">
+  <div class="dialog">
+    <div class="dialog-icon" id="dlgIcon">⚠️</div>
+    <h3 id="dlgTitle">Confirmar Restauração</h3>
+    <p id="dlgMsg">Esta ação sobrescreve TODOS os dados atuais com o snapshot selecionado. O sistema irá recarregar após a restauração.</p>
+    <div class="dialog-target" id="dlgTarget"></div>
+    <div class="dialog-actions">
+      <button class="btn" onclick="closeDialog()">Cancelar</button>
+      <button class="btn danger" id="dlgConfirm">⚡ Confirmar Restauração</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- FIREBASE + CONFIG -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+<script>
+  if (!firebase.apps.length) firebase.initializeApp(APP_CONFIG.firebase);
+</script>
+<script src="modules/backup.js"></script>
+
+<script>
+// ── UTILS ──────────────────────────────────────
+const SNAPSHOT_PREFIX = 'fazzo_snapshot_';
+
+function log(msg, type = 'info') {
+  const box = document.getElementById('logBox');
+  const time = new Date().toLocaleTimeString('pt-BR');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${time}</span><span class="log-${type}">${msg}</span>`;
+  box.insertBefore(line, box.firstChild);
+  if (box.children.length > 60) box.removeChild(box.lastChild);
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function fmtBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function lsSize() {
+  let total = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    total += (k.length + (localStorage.getItem(k)||'').length) * 2;
+  }
+  return total;
+}
+
+function lsFazzoKeys() {
+  const configKeys = Object.values((window.APP_CONFIG?.ls) || {});
+  const keys = new Set(configKeys);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('fazzo_') && !k.startsWith(SNAPSHOT_PREFIX)) keys.add(k);
+  }
+  return [...keys].filter(k => localStorage.getItem(k) !== null);
+}
+function loading(show) {
+  const p = document.getElementById('progress');
+  if (show) p.classList.add('show');
+  else { setTimeout(() => p.classList.remove('show'), 400); }
+}
+
+// ── COUNTDOWN ──────────────────────────────────
+function updateCountdown() {
+  const now = new Date();
+  const midnight = new Date(now); midnight.setHours(24,0,0,0);
+  const diff = midnight - now;
+  const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+  const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+  const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
+  document.getElementById('cardProximo').textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ── STATUS PILL ─────────────────────────────────
+function updatePill() {
+  const pill = document.getElementById('pillStatus');
+  const txt  = document.getElementById('pillText');
+  const last = localStorage.getItem('fazzo_last_backup');
+  const pendente = localStorage.getItem('fazzo_backup_pendente');
+
+  if (pendente) {
+    pill.className = 'pill warn';
+    txt.textContent = 'Backup pendente';
+  } else if (!last) {
+    pill.className = 'pill err';
+    txt.textContent = 'Sem backup';
+  } else {
+    const hours = (Date.now() - new Date(last).getTime()) / 3600000;
+    if (hours > 25) { pill.className = 'pill warn'; txt.textContent = 'Backup antigo'; }
+    else            { pill.className = 'pill ok';   txt.textContent = 'Backup OK'; }
+  }
+}
+
+// ── CARDS ───────────────────────────────────────
+function atualizarCards() {
+  const snaps = listarSnaps();
+  document.getElementById('cardSnapshotsCount').textContent = snaps.length;
+
+  const last = localStorage.getItem('fazzo_last_backup');
+  if (last) {
+    const d = new Date(last);
+    document.getElementById('cardUltimoDrive').textContent = d.toLocaleDateString('pt-BR');
+    document.getElementById('cardUltimoDriveSub').textContent = d.toLocaleTimeString('pt-BR');
+  }
+
+  const keys = lsFazzoKeys();
+  document.getElementById('cardTamanho').textContent = fmtBytes(lsSize());
+  document.getElementById('cardChaves').textContent = keys.length + ' chaves fazzo_*';
+  updatePill();
+}
+
+// ── SNAPSHOTS LOCAL ─────────────────────────────
+function listarSnaps() {
+  return Object.keys(localStorage)
+    .filter(k => k.startsWith(SNAPSHOT_PREFIX))
+    .sort().reverse();
+}
+
+function parseSnapshotMeta(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    const { ts, dados } = JSON.parse(raw);
+    const size = fmtBytes(raw.length * 2);
+    const chaves = Object.keys(dados || {}).length;
+    return { ts, size, chaves };
+  } catch { return { ts: null, size: '?', chaves: 0 }; }
+}
+
+function renderLocalList() {
+  const snaps = listarSnaps();
+  const list = document.getElementById('localList');
+
+  if (!snaps.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div>Nenhum snapshot local encontrado.<br><small>O primeiro será criado ao rodar o PDV.</small></div>`;
+    return;
+  }
+
+  list.innerHTML = snaps.map((key, i) => {
+    const { ts, size, chaves } = parseSnapshotMeta(key);
+    const label = key.replace(SNAPSHOT_PREFIX,'');
+    const timeStr = ts ? new Date(ts).toLocaleString('pt-BR') : label;
+    const badge = i === 0
+      ? `<span style="font-size:10px;color:var(--accent2);margin-left:6px">[MAIS RECENTE]</span>`
+      : '';
+    return `
+      <div class="backup-item">
+        <div class="bi-icon">📸</div>
+        <div class="bi-info">
+          <div class="bi-name">${label}${badge}</div>
+          <div class="bi-meta">${timeStr} · ${chaves} chaves</div>
+        </div>
+        <div class="bi-size">${size}</div>
+        <div class="bi-actions">
+          <button class="bi-btn restore" onclick="confirmarRestore('local','${key}')">Restaurar</button>
+          <button class="bi-btn delete"  onclick="deletarSnapshot('${key}')">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── DRIVE LIST ──────────────────────────────────
+async function listarDrive() {
+  const token = BackupManager.getToken();
+  if (!token) {
+    toast('Token Google expirado. Faça login novamente no PDV.', 'warn');
+    log('Token Drive ausente — faça login pelo PDV primeiro.', 'warn');
+    renderDriveEmpty('Faça login pelo PDV para acessar o Drive.');
+    return;
+  }
+  loading(true);
+  log('Buscando backups no Drive...', 'info');
+  try {
+    const q = encodeURIComponent("name contains 'fazzo_backup_' and trashed=false");
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,size,modifiedTime)&orderBy=modifiedTime%20desc`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error(res.status);
+    const { files = [] } = await res.json();
+    renderDriveList(files);
+    log(`Drive: ${files.length} backup(s) encontrado(s).`, 'ok');
+  } catch(err) {
+    toast('Erro ao acessar Drive: ' + err.message, 'err');
+    log('Erro Drive: ' + err, 'err');
+    renderDriveEmpty('Erro ao conectar com o Drive. Verifique o token.');
+  }
+  loading(false);
+}
+
+function renderDriveEmpty(msg) {
+  document.getElementById('driveList').innerHTML =
+    `<div class="empty-state"><div class="empty-icon">☁️</div>${msg}</div>`;
+}
+
+function renderDriveList(files) {
+  const list = document.getElementById('driveList');
+  if (!files.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">☁️</div>Nenhum backup encontrado no Drive.</div>`;
+    return;
+  }
+  list.innerHTML = files.map(f => {
+    const date = new Date(f.modifiedTime).toLocaleString('pt-BR');
+    const size = f.size ? fmtBytes(parseInt(f.size)) : '?';
+    return `
+      <div class="backup-item">
+        <div class="bi-icon drive">☁️</div>
+        <div class="bi-info">
+          <div class="bi-name">${f.name}</div>
+          <div class="bi-meta">${date}</div>
+        </div>
+        <div class="bi-size">${size}</div>
+        <div class="bi-actions">
+          <button class="bi-btn restore" onclick="confirmarRestore('drive','${f.id}','${f.name}')">Restaurar</button>
+          <button class="bi-btn" onclick="baixarDrive('${f.id}','${f.name}')">⬇️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function baixarDrive(fileId, name) {
+  const token = BackupManager.getToken();
+  if (!token) { toast('Token expirado.','warn'); return; }
+  loading(true);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+  loading(false);
+  log(`Download: ${name}`, 'ok');
+}
+
+// ── RESTORE ─────────────────────────────────────
+let _pendingRestore = null;
+
+function confirmarRestore(source, id, name='') {
+  _pendingRestore = { source, id, name };
+  document.getElementById('dlgTarget').textContent = name || id;
+  document.getElementById('dlgConfirm').onclick = executarRestore;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeDialog() {
+  document.getElementById('overlay').classList.remove('show');
+  _pendingRestore = null;
+}
+
+async function executarRestore() {
+  closeDialog();
+  if (!_pendingRestore) return;
+  const { source, id, name } = _pendingRestore;
+
+  loading(true);
+  log(`Restaurando de ${source}: ${name || id}...`, 'warn');
+
+  try {
+    if (source === 'local') {
+      BackupManager.restaurarSnapshot(id);
+      // restaurarSnapshot já faz location.reload()
+    } else {
+      await restaurarDrive(id, name);
+    }
+  } catch(err) {
+    toast('Erro na restauração: ' + err.message, 'err');
+    log('Erro restauração: ' + err, 'err');
+    loading(false);
+  }
+}
+
+async function restaurarDrive(fileId, name) {
+  const token = BackupManager.getToken();
+  if (!token) { toast('Token expirado.','warn'); loading(false); return; }
+
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Drive: ' + res.status);
+
+  const { dados } = await res.json();
+  if (!dados) throw new Error('Formato de backup inválido');
+
+  Object.entries(dados).forEach(([k, v]) => {
+    localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+  });
+
+  log(`✅ Restaurado de ${name}`, 'ok');
+  toast('✅ Restauração concluída! Recarregando...', 'ok');
+  setTimeout(() => location.reload(), 1800);
+}
+
+// ── BACKUP AGORA ────────────────────────────────
+async function backupAgora() {
+  const btn = document.getElementById('btnBackupAgora');
+  btn.disabled = true;
+  loading(true);
+  log('Iniciando backup manual no Drive...', 'info');
+  try {
+    const ok = await BackupManager.fazerBackupDrive(true);
+    if (ok) {
+      toast('☁️ Backup enviado com sucesso!', 'ok');
+      log('Backup Drive concluído.', 'ok');
+    } else {
+      toast('Token expirado. Faça login novamente no PDV.', 'warn');
+      log('Backup falhou: token ausente/expirado.', 'warn');
+    }
+  } catch(e) {
+    toast('Erro: ' + e.message, 'err');
+    log('Erro backup: ' + e, 'err');
+  }
+  loading(false);
+  btn.disabled = false;
+  atualizarCards();
+}
+
+// ── SNAPSHOT MANUAL ─────────────────────────────
+function salvarSnapshotManual() {
+  BackupManager.salvarSnapshot();
+  renderLocalList();
+  atualizarCards();
+  toast('📸 Snapshot salvo!', 'ok');
+  log('Snapshot manual criado.', 'ok');
+}
+
+// ── EXPORTAR JSON ───────────────────────────────
+function exportarJSON() {
+  const dados = {};
+  const keys = lsFazzoKeys();
+  keys.forEach(k => {
+    try { dados[k] = JSON.parse(localStorage.getItem(k)); }
+    catch { dados[k] = localStorage.getItem(k); }
+  });
+  const conteudo = JSON.stringify({ versao:'1.0', exportadoEm: new Date().toISOString(), dados }, null, 2);
+  const blob = new Blob([conteudo], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `fazzo_export_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  log('Export JSON baixado.', 'ok');
+  toast('⬇️ JSON exportado!', 'ok');
+}
+
+// ── IMPORTAR JSON ───────────────────────────────
+function importarJSON() {
+  document.getElementById('fileInput').click();
+}
+
+function onFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const { dados } = JSON.parse(e.target.result);
+      if (!dados) throw new Error('Formato inválido');
+      _pendingRestore = { _fromImport: dados, name: file.name };
+      document.getElementById('dlgTarget').textContent = file.name;
+      document.getElementById('dlgConfirm').onclick = () => {
+        closeDialog();
+        Object.entries(_pendingRestore._fromImport).forEach(([k,v]) => {
+          localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+        });
+        log(`Importado: ${file.name}`, 'ok');
+        toast('✅ Importação concluída! Recarregando...', 'ok');
+        setTimeout(() => location.reload(), 1500);
+      };
+      document.getElementById('overlay').classList.add('show');
+    } catch(err) {
+      toast('Arquivo inválido: ' + err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── DELETAR SNAPSHOT ────────────────────────────
+function deletarSnapshot(key) {
+  if (!confirm(`Deletar snapshot ${key}?`)) return;
+  localStorage.removeItem(key);
+  renderLocalList();
+  atualizarCards();
+  log(`Snapshot deletado: ${key}`, 'warn');
+  toast('Snapshot removido.', 'warn');
+}
+
+function limparSnapshots() {
+  const snaps = listarSnaps();
+  if (snaps.length <= 2) { toast('Mantendo os 2 mais recentes.', 'warn'); return; }
+  const remover = snaps.slice(2); // mantém os 2 mais recentes
+  if (!confirm(`Remover ${remover.length} snapshots antigos?`)) return;
+  remover.forEach(k => localStorage.removeItem(k));
+  renderLocalList();
+  atualizarCards();
+  toast(`${remover.length} snapshots removidos.`, 'ok');
+  log(`Limpeza: ${remover.length} snapshots removidos.`, 'ok');
+}
+
+// ── TABS ────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panel-local').style.display = tab==='local' ? 'block' : 'none';
+  document.getElementById('panel-drive').style.display = tab==='drive' ? 'block' : 'none';
+  document.getElementById('tab-local').classList.toggle('active', tab==='local');
+  document.getElementById('tab-drive').classList.toggle('active', tab==='drive');
+}
+
+// ── INIT ────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  renderLocalList();
+  atualizarCards();
+  log('Página de backup carregada.', 'info');
+});
+</script>
+</body>
+</html>

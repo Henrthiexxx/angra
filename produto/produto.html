@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📦 Cadastro de Produtos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#1a1a1a;min-height:100vh;padding:24px}
+.header{max-width:820px;margin:0 auto 28px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.page-title{display:flex;align-items:center;gap:12px;color:#fff}
+.title-icon{width:48px;height:48px;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.title-text h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.title-text p{font-size:13px;opacity:.9;margin-top:2px}
+.painel-margem{background:rgba(255,255,255,.2);backdrop-filter:blur(10px);padding:10px 18px;border-radius:14px;display:flex;align-items:center;gap:10px;color:#fff;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.painel-margem input{width:60px;padding:6px 10px;border:2px solid rgba(255,255,255,.3);border-radius:8px;text-align:center;font-size:16px;font-weight:700;background:rgba(255,255,255,.9);color:#1a1a1a}
+.painel-margem input:focus{outline:none;border-color:#fff;background:#fff}
+.container{max-width:820px;margin:0 auto;background:#fff;border-radius:22px;padding:36px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.produto-status{padding:14px 18px;border-radius:12px;margin-bottom:20px;display:none}
+.produto-status.show{display:block}
+.produto-status.editing{background:linear-gradient(135deg,#dbeafe,#bfdbfe);border:2px solid #60a5fa}
+.produto-status.novo{background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #fbbf24}
+.status-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.produto-status.editing .status-label{color:#1e40af}
+.produto-status.novo .status-label{color:#92400e}
+.status-nome{font-size:18px;font-weight:800;color:#1a1a1a}
+.form-section{margin-bottom:28px}
+.section-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-icon{width:30px;height:30px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.form-grid{display:grid;gap:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-weight:600;font-size:13px;color:#475569;display:flex;align-items:center;gap:5px}
+label .req{color:#ef4444}
+input,select{padding:12px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-family:inherit;transition:all .2s;background:#f8fafc}
+input:focus,select:focus{outline:none;border-color:#667eea;background:#fff;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
+input.error{border-color:#ef4444;background:#fef2f2}
+input.error:focus{box-shadow:0 0 0 3px rgba(239,68,68,.1)}
+.field-error{font-size:12px;color:#ef4444;font-weight:600;display:none}
+.field-error.show{display:block}
+.margem-info{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid #86efac;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;color:#166534;display:flex;align-items:center;gap:8px;margin-top:6px}
+.margem-info.empty{background:#f8fafc;border-color:#e2e8f0;color:#64748b}
+.form-actions{display:flex;gap:12px;margin-top:28px}
+.btn{flex:1;padding:14px 24px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.15)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.btn-secondary{background:#f1f5f9;color:#475569}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(100px);background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:14px 28px;border-radius:14px;font-weight:700;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:1001;opacity:0;transition:all .3s;max-width:90%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.list-section{margin-top:28px}
+.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.list-header h3{font-size:17px;font-weight:700}
+.list-search{padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;width:260px;max-width:100%}
+.list-search:focus{outline:none;border-color:#667eea}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;max-height:400px;overflow-y:auto;padding-right:4px}
+.prod-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;transition:all .2s;cursor:pointer}
+.prod-card:hover{border-color:#667eea;box-shadow:0 4px 12px rgba(102,126,234,.12);transform:translateY(-1px)}
+.prod-card .name{font-weight:700;font-size:15px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-card .code{font-size:12px;color:#64748b;margin-bottom:8px}
+.prod-card .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+.prod-card .row .lbl{color:#64748b}
+.prod-card .row .val{font-weight:600}
+.prod-card .card-actions{display:flex;gap:6px;margin-top:10px}
+.prod-card .card-actions button{flex:1;padding:8px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-edit{background:#eef2ff;color:#4f46e5}.btn-edit:hover{background:#c7d2fe}
+.btn-del{background:#fef2f2;color:#ef4444}.btn-del:hover{background:#fecaca}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge.low{background:#fef3c7;color:#d97706}.badge.out{background:#fee2e2;color:#dc2626}
+.empty{text-align:center;color:#94a3b8;padding:30px;font-size:14px}
+.popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000}
+.popup-overlay.show{display:flex}
+.popup-box{background:#fff;padding:28px;border-radius:18px;width:90%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.popup-icon{width:56px;height:56px;margin:0 auto 14px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px}
+.popup-box h3{font-size:20px;font-weight:800;margin-bottom:10px}
+.popup-box p{font-size:14px;color:#64748b;margin-bottom:20px;line-height:1.5}
+.popup-actions{display:flex;gap:10px}
+.popup-actions button{flex:1;padding:12px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;transition:all .2s}
+.popup-actions .pop-yes{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.popup-actions .pop-no{background:#f1f5f9;color:#475569}
+.popup-actions button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+@media(max-width:768px){
+  body{padding:16px}
+  .header{flex-direction:column;align-items:flex-start}
+  .painel-margem{width:100%;justify-content:space-between}
+  .container{padding:22px;border-radius:18px}
+  .form-row{grid-template-columns:1fr}
+  .form-actions{flex-direction:column}
+  .title-text h1{font-size:22px}
+  .list-search{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="page-title">
+    <div class="title-icon">📦</div>
+    <div class="title-text">
+      <h1>Cadastro de Produtos</h1>
+      <p>Gerencie seu estoque de forma rápida e eficiente</p>
+    </div>
+  </div>
+  <div class="painel-margem">
+    <span>💰 Margem padrão:</span>
+    <input type="number" id="margemPadrao" value="40" step="1" min="0" max="500">
+    <span>%</span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="produtoStatus" class="produto-status">
+    <div class="status-label" id="statusLabel">✨ Novo Produto</div>
+    <div class="status-nome" id="statusNome">—</div>
+  </div>
+
+  <form id="produtoForm" novalidate>
+    <div class="form-section">
+      <div class="section-title"><span class="section-icon">🔍</span> Identificação</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Código de Barras <span class="req">*</span></label>
+          <input type="text" id="codigoBarras" placeholder="Digite ou escaneie o código..." autocomplete="off" autofocus>
+          <div class="field-error" id="errCodigo"></div>
+        </div>
+        <div class="form-group full">
+          <label>Nome do Produto <span class="req">*</span></label>
+          <input type="text" id="nome" placeholder="Ex: Café Orgânico 500g" autocomplete="off">
+          <div class="field-error" id="errNome"></div>
+        </div>
+        <div class="form-group full">
+          <label>Categoria</label>
+          <input type="text" id="categoria" placeholder="Ex: Bebidas, Alimentos, Limpeza...">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title"><span class="section-icon">💵</span> Precificação</div>
+      <div class="form-grid">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Preço de Custo (R$)</label>
+            <input type="number" id="precoCusto" step="0.01" min="0" placeholder="0,00">
+          </div>
+          <div class="form-group">
+            <label>Preço de Venda (R$)</label>
+            <input type="number" id="precoVenda" step="0.01" min="0" placeholder="0,00">
+          </div>
+        </div>
+        <div id="margemInfo" class="margem-info empty">💡 Preencha o preço de custo para ver a sugestão</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title"><span class="section-icon">📊</span> Estoque</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Quantidade em Estoque</label>
+          <input type="number" id="estoque" min="0" step="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Estoque Mínimo</label>
+          <input type="number" id="estoqueMin" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" onclick="limparForm()">🔄 Limpar</button>
+      <button type="submit" class="btn btn-primary" id="btnSalvar">✅ Salvar Produto</button>
+    </div>
+  </form>
+
+  <div class="list-section">
+    <div class="list-header">
+      <h3>📋 Produtos Cadastrados (<span id="totalProd">0</span>)</h3>
+      <input type="text" class="list-search" id="buscaLista" placeholder="Buscar na lista..." autocomplete="off">
+    </div>
+    <div class="prod-grid" id="prodGrid"></div>
+  </div>
+</div>
+
+<div class="popup-overlay" id="popup">
+  <div class="popup-box">
+    <div class="popup-icon" id="popupIcon">🗑️</div>
+    <h3 id="popupTitle">Excluir Produto?</h3>
+    <p id="popupMsg">Mensagem</p>
+    <div class="popup-actions">
+      <button class="pop-yes" id="popupYes">Confirmar</button>
+      <button class="pop-no" id="popupNo">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const LS = "produtos";
+const $ = s => document.querySelector(s);
+let produtos = [];
+let editingId = null;
+
+const el = {
+  form: $("#produtoForm"), codigo: $("#codigoBarras"), nome: $("#nome"),
+  categoria: $("#categoria"), custo: $("#precoCusto"), venda: $("#precoVenda"),
+  estoque: $("#estoque"), estoqueMin: $("#estoqueMin"), margem: $("#margemPadrao"),
+  margemInfo: $("#margemInfo"), status: $("#produtoStatus"),
+  statusLabel: $("#statusLabel"), statusNome: $("#statusNome"),
+  errCodigo: $("#errCodigo"), errNome: $("#errNome"),
+  grid: $("#prodGrid"), totalProd: $("#totalProd"), buscaLista: $("#buscaLista"),
+  btnSalvar: $("#btnSalvar"), toast: $("#toast"),
+  popup: $("#popup"), popupTitle: $("#popupTitle"), popupMsg: $("#popupMsg"),
+  popupYes: $("#popupYes"), popupNo: $("#popupNo")
+};
+
+// ===== PERSISTENCE =====
+function load() {
+  try { produtos = JSON.parse(localStorage.getItem(LS) || "[]"); } catch { produtos = []; }
+  let fix = false;
+  produtos.forEach(p => { if (!p.id) { p.id = genId(); fix = true; } });
+  if (fix) save();
+}
+function save() { localStorage.setItem(LS, JSON.stringify(produtos)); }
+function genId() { return "P-" + Date.now() + "-" + Math.random().toString(36).substr(2, 6); }
+
+// ===== MARGEM =====
+el.margem.value = localStorage.getItem("margemPadrao") || 40;
+el.margem.addEventListener("input", () => {
+  localStorage.setItem("margemPadrao", el.margem.value);
+  calcularMargem();
+});
+el.custo.addEventListener("input", calcularMargem);
+el.venda.addEventListener("input", () => { el.venda.dataset.manual = "1"; calcularMargemInversa(); });
+
+function calcularMargem() {
+  const custo = parseFloat(el.custo.value) || 0;
+  const margem = parseFloat(el.margem.value) || 0;
+  if (custo <= 0) {
+    el.margemInfo.className = "margem-info empty";
+    el.margemInfo.innerHTML = "💡 Preencha o preço de custo para ver a sugestão";
+    return;
+  }
+  const sugerido = +(custo * (1 + margem / 100)).toFixed(2);
+  el.margemInfo.className = "margem-info";
+  el.margemInfo.innerHTML = `✨ Margem de <b>${margem}%</b> → Preço sugerido: <b>R$ ${sugerido.toFixed(2)}</b>`;
+  if (!el.venda.dataset.manual) el.venda.value = sugerido.toFixed(2);
+}
+
+function calcularMargemInversa() {
+  const custo = parseFloat(el.custo.value) || 0;
+  const venda = parseFloat(el.venda.value) || 0;
+  if (custo <= 0 || venda <= 0) return;
+  const margemReal = (((venda - custo) / custo) * 100).toFixed(1);
+  const lucro = (venda - custo).toFixed(2);
+  el.margemInfo.className = "margem-info";
+  el.margemInfo.innerHTML = `📊 Margem real: <b>${margemReal}%</b> | Lucro: <b>R$ ${lucro}</b> por unidade`;
+}
+
+// ===== BARCODE READER =====
+(function() {
+  let timer = null;
+  el.codigo.addEventListener("input", () => {
+    clearTimeout(timer);
+    clearFieldError("codigo");
+    const val = el.codigo.value.trim();
+    if (/^\d{3,}$/.test(val)) {
+      timer = setTimeout(() => autoFillByCodigo(val), 400);
+    } else { resetStatus(); }
+  });
+  el.codigo.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault(); clearTimeout(timer);
+      const val = el.codigo.value.trim();
+      if (val) autoFillByCodigo(val);
+    }
+  });
+})();
+
+function autoFillByCodigo(codigo) {
+  const existente = produtos.find(p => p.codigoBarras === codigo);
+  if (existente) {
+    editingId = existente.id;
+    fillForm(existente);
+    showStatus("editing", "📝 Editando Produto", existente.nome);
+    el.btnSalvar.innerHTML = "💾 Atualizar Produto";
+    el.custo.focus();
+  } else {
+    editingId = null;
+    showStatus("novo", "✨ Novo Produto", "Preencha os dados abaixo");
+    el.btnSalvar.innerHTML = "✅ Salvar Produto";
+  }
+}
+
+// ===== VALIDATION =====
+function validate() {
+  let ok = true;
+  const codigo = el.codigo.value.trim();
+  const nome = el.nome.value.trim();
+
+  if (!codigo) { showFieldError("codigo", "Código de barras é obrigatório"); ok = false; }
+  if (!nome) { showFieldError("nome", "Nome do produto é obrigatório"); ok = false; }
+
+  if (codigo) {
+    const dup = produtos.find(p => p.codigoBarras === codigo && p.id !== editingId);
+    if (dup) { showFieldError("codigo", `Código já usado por "${dup.nome}"`); ok = false; }
+  }
+  if (nome) {
+    const dup = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase() && p.id !== editingId);
+    if (dup) { showFieldError("nome", `Já existe produto com este nome (cód: ${dup.codigoBarras || "—"})`); ok = false; }
+  }
+  return ok;
+}
+
+function showFieldError(f, msg) {
+  const err = f === "codigo" ? el.errCodigo : el.errNome;
+  const inp = f === "codigo" ? el.codigo : el.nome;
+  err.textContent = msg; err.classList.add("show"); inp.classList.add("error");
+}
+function clearFieldError(f) {
+  const err = f === "codigo" ? el.errCodigo : el.errNome;
+  const inp = f === "codigo" ? el.codigo : el.nome;
+  err.classList.remove("show"); inp.classList.remove("error");
+}
+function clearAllErrors() { clearFieldError("codigo"); clearFieldError("nome"); }
+
+// ===== FORM =====
+function fillForm(p) {
+  el.nome.value = p.nome || "";
+  el.categoria.value = p.categoria || "";
+  el.custo.value = (+p.precoCusto || 0).toFixed(2);
+  el.venda.value = (+p.precoVenda || 0).toFixed(2);
+  el.estoque.value = +p.estoque || 0;
+  el.estoqueMin.value = +p.min || 0;
+  el.venda.dataset.manual = "";
+  calcularMargemInversa();
+}
+
+window.limparForm = function() {
+  el.form.reset(); el.codigo.value = ""; el.venda.dataset.manual = "";
+  editingId = null; resetStatus(); clearAllErrors();
+  el.btnSalvar.innerHTML = "✅ Salvar Produto";
+  el.margemInfo.className = "margem-info empty";
+  el.margemInfo.innerHTML = "💡 Preencha o preço de custo para ver a sugestão";
+  el.codigo.focus();
+};
+
+function showStatus(type, label, nome) {
+  el.status.className = `produto-status ${type} show`;
+  el.statusLabel.textContent = label; el.statusNome.textContent = nome;
+}
+function resetStatus() { el.status.className = "produto-status"; }
+
+// ===== SUBMIT =====
+el.form.addEventListener("submit", e => {
+  e.preventDefault(); clearAllErrors();
+  if (!validate()) return;
+
+  const obj = {
+    id: editingId || genId(),
+    nome: el.nome.value.trim(),
+    codigoBarras: el.codigo.value.trim(),
+    categoria: el.categoria.value.trim(),
+    precoCusto: parseFloat(el.custo.value) || 0,
+    precoVenda: parseFloat(el.venda.value) || 0,
+    estoque: parseInt(el.estoque.value) || 0,
+    min: parseInt(el.estoqueMin.value) || 0,
+    ativo: true,
+    dataAtualizacao: new Date().toISOString()
+  };
+
+  if (editingId) {
+    const idx = produtos.findIndex(p => p.id === editingId);
+    if (idx > -1) {
+      obj.dataCadastro = produtos[idx].dataCadastro || new Date().toISOString();
+      produtos[idx] = { ...produtos[idx], ...obj };
+    }
+    toast("✅ Produto atualizado!");
+  } else {
+    obj.dataCadastro = new Date().toISOString();
+    produtos.push(obj);
+    toast("✅ Produto cadastrado!");
+  }
+
+  save(); limparForm(); renderLista();
+
+  try { if (window.parent?.syncManager?.pushProdutos) window.parent.syncManager.pushProdutos(); } catch {}
+});
+
+// ===== LISTA =====
+function renderLista() {
+  const q = el.buscaLista.value.toLowerCase().trim();
+  const filtered = produtos.filter(p =>
+    p.ativo !== false && (
+      (p.nome || "").toLowerCase().includes(q) ||
+      (p.codigoBarras || "").includes(q) ||
+      (p.categoria || "").toLowerCase().includes(q)
+    )
+  );
+  el.totalProd.textContent = produtos.filter(p => p.ativo !== false).length;
+
+  if (filtered.length === 0) { el.grid.innerHTML = '<div class="empty">Nenhum produto encontrado</div>'; return; }
+
+  el.grid.innerHTML = filtered.map(p => {
+    const est = +p.estoque || 0, min = +p.min || 0;
+    const custo = +p.precoCusto || 0, venda = +p.precoVenda || 0;
+    const margem = custo > 0 ? (((venda - custo) / custo) * 100).toFixed(0) : "—";
+    const low = min > 0 && est <= min, out = est === 0;
+    return `<div class="prod-card" ondblclick="editarProd('${p.id}')">
+      <div class="name">${p.nome} ${out ? '<span class="badge out">ZERADO</span>' : low ? '<span class="badge low">BAIXO</span>' : ''}</div>
+      <div class="code">${p.codigoBarras || "Sem código"} ${p.categoria ? "• " + p.categoria : ""}</div>
+      <div class="row"><span class="lbl">Custo</span><span class="val">R$ ${custo.toFixed(2)}</span></div>
+      <div class="row"><span class="lbl">Venda</span><span class="val">R$ ${venda.toFixed(2)}</span></div>
+      <div class="row"><span class="lbl">Margem</span><span class="val">${margem}%</span></div>
+      <div class="row"><span class="lbl">Estoque</span><span class="val">${est}</span></div>
+      <div class="card-actions">
+        <button class="btn-edit" onclick="editarProd('${p.id}')">✏️ Editar</button>
+        <button class="btn-del" onclick="confirmarExclusao('${p.id}')">🗑️ Excluir</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ===== EDITAR =====
+window.editarProd = function(id) {
+  const p = produtos.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  el.codigo.value = p.codigoBarras || "";
+  fillForm(p);
+  showStatus("editing", "📝 Editando Produto", p.nome);
+  el.btnSalvar.innerHTML = "💾 Atualizar Produto";
+  el.codigo.focus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// ===== EXCLUIR =====
+let pendingDelete = null;
+window.confirmarExclusao = function(id) {
+  const p = produtos.find(x => x.id === id);
+  if (!p) return;
+  pendingDelete = id;
+  el.popupTitle.textContent = "Excluir Produto?";
+  el.popupMsg.textContent = `"${p.nome}" será removido permanentemente.`;
+  el.popup.classList.add("show");
+};
+el.popupYes.onclick = () => {
+  if (pendingDelete) {
+    produtos = produtos.filter(p => p.id !== pendingDelete);
+    save(); renderLista(); toast("🗑️ Produto excluído");
+    if (editingId === pendingDelete) limparForm();
+  }
+  pendingDelete = null; el.popup.classList.remove("show");
+};
+el.popupNo.onclick = () => { pendingDelete = null; el.popup.classList.remove("show"); };
+el.popup.addEventListener("click", e => { if (e.target === el.popup) el.popupNo.click(); });
+
+// ===== TOAST =====
+function toast(msg, type = "success") {
+  el.toast.textContent = msg;
+  el.toast.className = `toast ${type}`;
+  requestAnimationFrame(() => el.toast.classList.add("show"));
+  setTimeout(() => el.toast.classList.remove("show"), 3000);
+}
+
+// ===== LISTENERS =====
+el.buscaLista.addEventListener("input", renderLista);
+el.nome.addEventListener("input", () => clearFieldError("nome"));
+
+// ===== INIT =====
+load(); renderLista(); calcularMargem(); el.codigo.focus();
+</script>
+</body>
+</html>

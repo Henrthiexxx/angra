@@ -610,6 +610,7 @@ function lsSize() {
 function lsFazzoKeys() {
   const configKeys = Object.values((window.APP_CONFIG?.ls) || {});
   const keys = new Set(configKeys);
+  keys.add('produtos'); // ← inclui explicitamente
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k && k.startsWith('fazzo_') && !k.startsWith(SNAPSHOT_PREFIX)) keys.add(k);

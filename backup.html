@@ -921,11 +921,14 @@ function onFileImport(event) {
       _pendingRestore = { _fromImport: dados, name: file.name };
       document.getElementById('dlgTarget').textContent = file.name;
       document.getElementById('dlgConfirm').onclick = () => {
+        const importData = _pendingRestore?._fromImport;
+        const importName = _pendingRestore?.name;
         closeDialog();
-        Object.entries(_pendingRestore._fromImport).forEach(([k,v]) => {
+        if (!importData) return;
+        Object.entries(importData).forEach(([k,v]) => {
           localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
         });
-        log(`Importado: ${file.name}`, 'ok');
+        log(`Importado: ${importName}`, 'ok');
         toast('✅ Importação concluída! Recarregando...', 'ok');
         setTimeout(() => location.reload(), 1500);
       };
@@ -937,7 +940,6 @@ function onFileImport(event) {
   reader.readAsText(file);
   event.target.value = '';
 }
-
 // ── DELETAR SNAPSHOT ────────────────────────────
 function deletarSnapshot(key) {
   if (!confirm(`Deletar snapshot ${key}?`)) return;
